@@ -1,0 +1,279 @@
+/* Notation10 chrome — tokens mirror notation-ui (ThemeTokens) and are
+   refreshed from the `design_tokens` command at startup. */
+
+:root {
+  --board: #F7F6F2;
+  --dock: #F0F1F3;
+  --panel: #FAFBFC;
+  --separator: #D5D8DC;
+  --hover: #E2EAF3;
+  --selection: #0F7AC4;
+  --active-page-bg: rgba(15, 122, 196, 0.15);
+  --text: #1E2126;
+  --primary: #0F7AC4;
+  --success: #2E7D32;
+  --danger: #D32F2F;
+}
+
+body[data-theme="dark"] {
+  --board: #23262B;
+  --dock: #2A2D33;
+  --panel: #34383F;
+  --separator: #3A3E45;
+  --hover: #353B45;
+  --selection: #3E8EDE;
+  --active-page-bg: rgba(62, 142, 222, 0.18);
+  --text: #ECEFF2;
+  --primary: #3E8EDE;
+  --success: #4CAF50;
+  --danger: #E5484D;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", "Noto Sans", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--dock);
+  user-select: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 960px;
+  min-height: 600px;
+}
+
+.spacer { flex: 1; }
+.hidden { display: none !important; }
+.scroll-y { overflow-y: auto; }
+
+/* --- top bar (36px) ------------------------------------------------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 4px 8px;
+  background: var(--dock);
+}
+
+.doc-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page-label { font-size: 13px; white-space: nowrap; }
+
+/* --- middle area ------------------------------------------------------ */
+#middle { display: flex; flex: 1; min-height: 0; }
+
+#page-panel {
+  width: 120px;
+  flex: 0 0 120px;
+  display: flex;
+  flex-direction: column;
+  background: var(--dock);
+  padding: 4px;
+}
+
+#page-list { display: flex; flex-direction: column; gap: 6px; padding: 8px 4px; }
+
+.page-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.page-cell:hover { background: var(--hover); }
+.page-cell.active {
+  background: var(--active-page-bg);
+  border: 1.5px solid var(--selection);
+}
+.page-cell .thumb { border: 1px solid var(--separator); background: var(--board); }
+.page-cell .page-no { font-size: 11px; }
+
+#page-controls { display: flex; flex-direction: column; gap: 4px; padding: 4px; }
+#page-nav { display: flex; gap: 4px; }
+
+/* --- board area ------------------------------------------------------ */
+#board-area { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+#board-wrap { flex: 1; min-height: 0; position: relative; }
+#board { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+#element-editor {
+  display: flex;
+  gap: 6px;
+  padding: 3px 10px;
+  background: var(--panel);
+}
+#element-editor input { flex: 1; }
+
+#notes-strip { padding: 4px 10px; background: var(--dock); }
+#notes-strip input { width: 100%; }
+
+input, select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--separator);
+  border-radius: 3px;
+  padding: 5px 6px;
+}
+input:focus, select:focus { outline: 1px solid var(--primary); }
+
+/* --- bottom dock (44px) ------------------------------------------------ */
+#dock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 6px 10px;
+  background: var(--dock);
+}
+
+#tool-dock, #width-dock, #color-dock { display: flex; align-items: center; gap: 4px; }
+.v-sep { width: 1px; align-self: stretch; margin: 2px 2px; background: var(--separator); }
+
+.tool-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.tool-btn:hover { background: var(--hover); }
+.tool-btn.active { background: var(--hover); border-color: var(--selection); }
+.tool-btn svg { display: block; }
+
+.width-btn {
+  width: 24px; height: 24px;
+  font-size: 12px;
+  border: none; border-radius: 4px;
+  background: transparent; color: var(--text);
+  cursor: pointer;
+}
+.width-btn:hover { background: var(--hover); }
+.width-btn.selected { background: var(--hover); outline: 1px solid var(--selection); }
+
+.swatch-btn {
+  width: 22px; height: 22px;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; cursor: pointer;
+}
+.swatch-btn .swatch {
+  width: 16px; height: 16px;
+  border: 1px solid var(--separator);
+  border-radius: 3px;
+}
+
+#shape-pick-btn { width: 74px; justify-content: center; }
+
+/* --- update bar -------------------------------------------------------- */
+#update-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 4px 10px;
+  background: var(--hover);
+  font-size: 12px;
+}
+#update-actions { display: flex; gap: 6px; }
+
+/* --- buttons ------------------------------------------------------------- */
+button { font: inherit; color: var(--text); }
+
+.icon-btn {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 4px;
+  cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { background: var(--hover); }
+.icon-btn:disabled { opacity: 0.45; cursor: default; }
+
+.text-btn {
+  background: transparent; border: none; border-radius: 4px;
+  padding: 5px 8px; font-size: 13px; cursor: pointer;
+}
+.text-btn:hover { background: var(--hover); }
+
+.small-btn {
+  background: transparent; border: 1px solid var(--separator); border-radius: 4px;
+  padding: 4px 8px; font-size: 12px; cursor: pointer;
+}
+.small-btn:hover { background: var(--hover); }
+
+.tiny-btn {
+  background: transparent; border: none; border-radius: 4px;
+  padding: 4px 6px; font-size: 11px; cursor: pointer;
+}
+.tiny-btn:hover { background: var(--hover); }
+
+/* --- overlays ------------------------------------------------------------- */
+.overlay { position: fixed; z-index: 20; }
+.overlay.center {
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+#start-menu { top: 36px; left: 8px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--separator);
+  border-radius: 4px;
+  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.menu-card { width: 220px; padding: 8px; }
+.menu-card .caption { font-size: 11px; padding: 0 8px 6px; }
+.menu-items { display: flex; flex-direction: column; gap: 2px; }
+.menu-item {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: transparent; border: none; border-radius: 4px;
+  cursor: pointer;
+}
+.menu-item:hover { background: var(--hover); }
+
+.settings-card { width: 360px; padding: 14px; }
+.settings-card h2 { margin: 0 0 6px; font-size: 16px; }
+.settings-card .labeled-row {
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px 0; font-size: 13px;
+}
+.settings-card .labeled-row > span { flex: 1; }
+.check-row { display: block; margin: 8px 0; font-size: 13px; }
+.dialog-actions { margin-top: 12px; text-align: right; }
+
+.about-card { width: 380px; padding: 14px; }
+.about-card h2 { margin: 0 0 4px; font-size: 18px; }
+.about-card .muted { color: var(--text); opacity: 0.85; }
+.about-card .small-text { font-size: 12px; margin-top: 4px; }
+
+.hairline { border: none; border-top: 1px solid var(--separator); margin: 4px 0; }
+
+/* --- mock badge ------------------------------------------------------------- */
+#mock-badge {
+  position: fixed; bottom: 4px; right: 6px; z-index: 30;
+  font-size: 10px; padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--danger); color: #fff;
+  opacity: 0.75;
+}

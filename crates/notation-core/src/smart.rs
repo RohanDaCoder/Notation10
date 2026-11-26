@@ -1,12 +1,14 @@
 //! Smart shape recognition ("Intelligent identification").
 //!
 //! Heuristics over a finished stroke: closed-ness, corner count and
-//! roundness decide which figure the user probably meant to draw.
+//! roundness decide which figure the user probably meant to draw. Lives in
+//! the domain crate so every front end (Iced legacy, Tauri today) shares
+//! one recognizer with unit tests.
 
-use notation_core::element::{Element, FigureKind, FillMode};
-use notation_core::geometry::{Point, Rect};
-use notation_core::stroke::Stroke;
-use notation_core::tool::ToolSettings;
+use crate::element::{Element, FigureKind, FillMode};
+use crate::geometry::{Point, Rect};
+use crate::stroke::Stroke;
+use crate::tool::ToolSettings;
 
 /// Try to recognize a finished stroke as a figure.
 ///
@@ -109,10 +111,10 @@ fn count_corners(points: &[Point]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use notation_core::stroke::Palette;
+    use crate::stroke::Palette;
 
     fn stroke_from(points: &[(f32, f32)]) -> Stroke {
-        let mut s = Stroke::new(notation_core::stroke::StrokeStyle::HardPen, Palette::Black);
+        let mut s = Stroke::new(crate::stroke::StrokeStyle::HardPen, Palette::Black);
         for (x, y) in points {
             s.push(Point::new(*x, *y));
         }
