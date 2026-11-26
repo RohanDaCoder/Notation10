@@ -103,10 +103,12 @@ pub fn is_newer(candidate: &str, current: &str) -> bool {
     false
 }
 
-fn http_get(url: &str) -> Result<ureq::Response, UpdateError> {
-    ureq::AgentBuilder::new()
+fn http_get(url: &str) -> Result<ureq::http::Response<ureq::Body>, UpdateError> {
+    let agent: ureq::Agent = ureq::Agent::config_builder()
         .user_agent(concat!("notation-updater/", env!("CARGO_PKG_VERSION")))
         .build()
+        .into();
+    agent
         .get(url)
         .call()
         .map_err(|e| UpdateError::Network(e.to_string()))
@@ -116,8 +118,10 @@ fn http_get(url: &str) -> Result<ureq::Response, UpdateError> {
 pub fn check(repo: &str, current_version: &str, target: &str) -> Result<Update, UpdateError> {
     let url = format!("https://api.github.com/repos/{repo}/releases/latest");
     let mut body = String::new();
-    http_get(&url)?
-        .into_reader()
+    let mut response = http_get(&url)?;
+    response
+        .body_mut()
+        .as_reader()
         .take(MAX_JSON as u64)
         .read_to_string(&mut body)?;
     let release: Release = serde_json::from_str(&body)?;
@@ -141,8 +145,10 @@ pub fn check(repo: &str, current_version: &str, target: &str) -> Result<Update, 
 pub fn fetch_checksums(repo: &str, tag: &str) -> Result<Vec<(String, String)>, UpdateError> {
     let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
     let mut body = String::new();
-    http_get(&url)?
-        .into_reader()
+    let mut response = http_get(&url)?;
+    response
+        .body_mut()
+        .as_reader()
         .take(MAX_JSON as u64)
         .read_to_string(&mut body)?;
     let release: Release = serde_json::from_str(&body)?;
@@ -154,8 +160,10 @@ pub fn fetch_checksums(repo: &str, tag: &str) -> Result<Vec<(String, String)>, U
         .ok_or(UpdateError::NoAsset)?;
 
     let mut text = String::new();
-    http_get(&sums.url)?
-        .into_reader()
+    let mut response = http_get(&sums.url)?;
+    response
+        .body_mut()
+        .as_reader()
         .take(MAX_JSON as u64)
         .read_to_string(&mut text)?;
 
@@ -189,7 +197,7 @@ pub fn download_and_verify(
     let dir = stage_dir()?;
     let path = dir.join(&asset.name);
 
-    let mut reader = http_get(&asset.url)?.into_reader();
+    let mut reader = http_get(&asset.url)?.into_body().into_reader();
     let mut bytes = Vec::with_capacity(asset.size as usize);
     reader.read_to_end(&mut bytes)?;
     on_progress(bytes.len() as u64, asset.size);
@@ -294,8 +302,10 @@ pub fn check_manifest(
 ) -> Result<Option<ManifestUpdate>, UpdateError> {
     let url = format!("https://api.github.com/repos/{repo}/releases/latest");
     let mut body = String::new();
-    http_get(&url)?
-        .into_reader()
+    let mut response = http_get(&url)?;
+    response
+        .body_mut()
+        .as_reader()
         .take(MAX_JSON as u64)
         .read_to_string(&mut body)?;
     let release: Release = serde_json::from_str(&body)?;
@@ -311,8 +321,10 @@ pub fn check_manifest(
         .ok_or(UpdateError::NoAsset)?;
 
     let mut manifest_body = String::new();
-    http_get(&manifest_asset.url)?
-        .into_reader()
+    let mut response = http_get(&manifest_asset.url)?;
+    response
+        .body_mut()
+        .as_reader()
         .take(MAX_JSON as u64)
         .read_to_string(&mut manifest_body)?;
     let manifest: UpdateManifest = serde_json::from_str(&manifest_body)?;
@@ -346,7 +358,7 @@ pub fn download_manifest_asset(
         .unwrap_or("notation10-update.exe");
     let path = dir.join(file_name);
 
-    let mut reader = http_get(&asset.url)?.into_reader();
+    let mut reader = http_get(&asset.url)?.into_body().into_reader();
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes)?;
     on_progress(bytes.len() as u64, asset.size);

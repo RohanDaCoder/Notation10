@@ -69,25 +69,23 @@ impl IpcApp {
             self.settings.text_italic = italic;
         }
         // Restyle the selected text element live, like the original editor.
-        if let Some(selected) = self.selected {
-            if let Some(page) = self.doc_mut().active_page_mut() {
-                if let Some(Element::Text {
-                    size: el_size,
-                    bold: el_bold,
-                    italic: el_italic,
-                    ..
-                }) = page.elements.get_mut(selected)
-                {
-                    if let Some(new_size) = size {
-                        *el_size = new_size.clamp(6.0, 256.0);
-                    }
-                    if let Some(new_bold) = bold {
-                        *el_bold = new_bold;
-                    }
-                    if let Some(new_italic) = italic {
-                        *el_italic = new_italic;
-                    }
-                }
+        if let Some(selected) = self.selected
+            && let Some(page) = self.doc_mut().active_page_mut()
+            && let Some(Element::Text {
+                size: el_size,
+                bold: el_bold,
+                italic: el_italic,
+                ..
+            }) = page.elements.get_mut(selected)
+        {
+            if let Some(new_size) = size {
+                *el_size = new_size.clamp(6.0, 256.0);
+            }
+            if let Some(new_bold) = bold {
+                *el_bold = new_bold;
+            }
+            if let Some(new_italic) = italic {
+                *el_italic = new_italic;
             }
         }
     }
@@ -306,12 +304,11 @@ impl IpcApp {
             .doc()
             .active_page()
             .and_then(|pg| pg.hit_elements(p).next());
-        if let Some(i) = target {
-            if let Some(page) = self.doc_mut().active_page_mut() {
-                if let Some(Element::Figure { fill: f, .. }) = page.elements.get_mut(i) {
-                    *f = fill;
-                }
-            }
+        if let Some(i) = target
+            && let Some(page) = self.doc_mut().active_page_mut()
+            && let Some(Element::Figure { fill: f, .. }) = page.elements.get_mut(i)
+        {
+            *f = fill;
         }
     }
 
@@ -367,10 +364,10 @@ impl IpcApp {
     pub fn delete_selected(&mut self) {
         if let Some(i) = self.selected {
             self.checkpoint();
-            if let Some(page) = self.doc_mut().active_page_mut() {
-                if i < page.elements.len() {
-                    page.elements.remove(i);
-                }
+            if let Some(page) = self.doc_mut().active_page_mut()
+                && i < page.elements.len()
+            {
+                page.elements.remove(i);
             }
             self.selected = None;
         }
@@ -395,12 +392,11 @@ impl IpcApp {
 
     /// Live edit of the selected text element (element editor strip).
     pub fn edit_selected_text(&mut self, content: String) {
-        if let Some(i) = self.selected {
-            if let Some(page) = self.doc_mut().active_page_mut() {
-                if let Some(Element::Text { content: c, .. }) = page.elements.get_mut(i) {
-                    *c = content;
-                }
-            }
+        if let Some(i) = self.selected
+            && let Some(page) = self.doc_mut().active_page_mut()
+            && let Some(Element::Text { content: c, .. }) = page.elements.get_mut(i)
+        {
+            *c = content;
         }
     }
 
