@@ -113,7 +113,12 @@ pub fn distance_to_segment(p: Point, a: Point, b: Point) -> f32 {
 }
 
 /// Colors available on the original's color board ("sucker panel").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// The eight named entries mirror the legacy palette; [`Palette::Hex`] carries
+/// any other measured quick-palette color. Both serialize as flat strings
+/// (`"Black"`, `"#FF1100"`, …) so the web front end and `.enbx` files see
+/// one uniform color string space.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Palette {
     Black,
     Red,
@@ -123,6 +128,24 @@ pub enum Palette {
     Blue,
     Purple,
     White,
+    /// Arbitrary sRGB color, serialized as `#RRGGBB`.
+    Hex(u8, u8, u8),
+}
+
+impl Serialize for Palette {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Palette::Hex(r, g, b) => serializer.serialize_str(&Self::hex_string(*r, *g, *b)),
+            named => serializer.serialize_str(named.label()),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Palette {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::parse(&s).ok_or_else(|| serde::de::Error::custom(format!("unknown color: {s}")))
+    }
 }
 
 impl Palette {
@@ -137,6 +160,48 @@ impl Palette {
         Palette::White,
     ];
 
+    fn hex_string(r: u8, g: u8, b: u8) -> String {
+        format!("#{r:02X}{g:02X}{b:02X}")
+    }
+
+    /// Parse a palette entry: a legacy name or a `#RRGGBB` string.
+    pub fn parse(s: &str) -> Option<Palette> {
+        match s {
+            "Black" => return Some(Palette::Black),
+            "Red" => return Some(Palette::Red),
+            "Orange" => return Some(Palette::Orange),
+            "Yellow" => return Some(Palette::Yellow),
+            "Green" => return Some(Palette::Green),
+            "Blue" => return Some(Palette::Blue),
+            "Purple" => return Some(Palette::Purple),
+            "White" => return Some(Palette::White),
+            _ => {}
+        }
+        let hex = s.strip_prefix('#')?;
+        if hex.len() != 6 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return None;
+        }
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        Some(Palette::Hex(r, g, b))
+    }
+
+    /// Legacy palette name (the hex entry has none).
+    pub fn label(&self) -> &'static str {
+        match self {
+            Palette::Black => "Black",
+            Palette::Red => "Red",
+            Palette::Orange => "Orange",
+            Palette::Yellow => "Yellow",
+            Palette::Green => "Green",
+            Palette::Blue => "Blue",
+            Palette::Purple => "Purple",
+            Palette::White => "White",
+            Palette::Hex(..) => "Custom",
+        }
+    }
+
     /// sRGB triple in 0..=255, matching the original's default board palette.
     pub fn rgb(&self) -> (u8, u8, u8) {
         match self {
@@ -148,13 +213,44 @@ impl Palette {
             Palette::Blue => (0x0F, 0x7A, 0xC4),
             Palette::Purple => (0x82, 0x3E, 0xAB),
             Palette::White => (0xFF, 0xFF, 0xFF),
+            Palette::Hex(r, g, b) => (*r, *g, *b),
         }
+    }
+
+    /// `#RRGGBB` CSS color string.
+    pub fn to_css_hex(&self) -> String {
+        let (r, g, b) = self.rgb();
+        Self::hex_string(r, g, b)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn palette_named_roundtrips_as_flat_string() {
+        assert_eq!(serde_json::to_string(&Palette::Black).unwrap(), "\"Black\"");
+        let parsed: Palette = serde_json::from_str("\"Blue\"").unwrap();
+        assert_eq!(parsed, Palette::Blue);
+    }
+
+    #[test]
+    fn palette_hex_roundtrips_as_rrggbb() {
+        let color = Palette::parse("#FF1100").unwrap();
+        assert_eq!(serde_json::to_string(&color).unwrap(), "\"#FF1100\"");
+        let parsed: Palette = serde_json::from_str("\"#FF1100\"").unwrap();
+        assert_eq!(parsed, color);
+        assert_eq!(color.rgb(), (0xFF, 0x11, 0x00));
+        assert_eq!(color.to_css_hex(), "#FF1100");
+    }
+
+    #[test]
+    fn palette_rejects_malformed_hex() {
+        assert!(Palette::parse("#GGGGGG").is_none());
+        assert!(Palette::parse("#FFF").is_none());
+        assert!(Palette::parse("not a color").is_none());
+    }
 
     #[test]
     fn dedups_close_samples() {

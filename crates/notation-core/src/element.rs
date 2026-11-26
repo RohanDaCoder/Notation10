@@ -15,13 +15,17 @@ pub enum FillMode {
     Solid(Palette),
 }
 
-/// 2D figure kinds, mirroring the original's shape tool family.
+/// Figure kinds, mirroring the original's shape tool family (Phase-2
+/// TOOLBAR.md §2): line family, plain shapes, then the pseudo-3D solids.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum FigureKind {
     Line,
     Arrow,
     DottedLine,
     WavyLine,
+    Arc,
+    Segment,
+    ParallelLines,
     Rectangle,
     RoundedRectangle,
     Ellipse,
@@ -34,6 +38,15 @@ pub enum FigureKind {
     Pentagon,
     Hexagon,
     Star,
+    Pseudo3DCube,
+    Pseudo3DCone,
+    Pseudo3DCylinder,
+    Pseudo3DSphere,
+    Pseudo3DHemisphere,
+    Pseudo3DDihedron,
+    Pseudo3DTriangularPyramid,
+    Pseudo3DRectangularPyramid,
+    Pseudo3DTruncatedCone,
 }
 
 impl FigureKind {
@@ -43,6 +56,9 @@ impl FigureKind {
             FigureKind::Arrow => "Arrow",
             FigureKind::DottedLine => "Dotted line",
             FigureKind::WavyLine => "Wavy line",
+            FigureKind::Arc => "Arc",
+            FigureKind::Segment => "Segment",
+            FigureKind::ParallelLines => "Parallel lines",
             FigureKind::Rectangle => "Rectangle",
             FigureKind::RoundedRectangle => "Rectangle",
             FigureKind::Ellipse => "Ellipse",
@@ -55,7 +71,30 @@ impl FigureKind {
             FigureKind::Pentagon => "Pentagon",
             FigureKind::Hexagon => "Hexagon",
             FigureKind::Star => "Star",
+            FigureKind::Pseudo3DCube => "3D cube",
+            FigureKind::Pseudo3DCone => "3D cone",
+            FigureKind::Pseudo3DCylinder => "3D cylinder",
+            FigureKind::Pseudo3DSphere => "3D sphere",
+            FigureKind::Pseudo3DHemisphere => "3D hemisphere",
+            FigureKind::Pseudo3DDihedron => "3D dihedron",
+            FigureKind::Pseudo3DTriangularPyramid => "3D triangular pyramid",
+            FigureKind::Pseudo3DRectangularPyramid => "3D rectangular pyramid",
+            FigureKind::Pseudo3DTruncatedCone => "3D truncated cone",
         }
+    }
+
+    /// Open kinds render as strokes (no fill), like the original's line family.
+    pub fn is_closed(&self) -> bool {
+        !matches!(
+            self,
+            FigureKind::Line
+                | FigureKind::Arrow
+                | FigureKind::DottedLine
+                | FigureKind::WavyLine
+                | FigureKind::Arc
+                | FigureKind::Segment
+                | FigureKind::ParallelLines
+        )
     }
 
     /// Regular-polygon vertex angle helpers for star/pentagon/hexagon rendering.
@@ -71,14 +110,6 @@ impl FigureKind {
             FigureKind::Star => Some(10),
             _ => None,
         }
-    }
-
-    /// Whether the figure encloses an area (can be filled).
-    pub fn is_closed(&self) -> bool {
-        !matches!(
-            self,
-            FigureKind::Line | FigureKind::Arrow | FigureKind::DottedLine | FigureKind::WavyLine
-        )
     }
 }
 

@@ -108,27 +108,46 @@ impl IpcApp {
         }
     }
 
-    /// Cycle the figure slot through the shape family ("shape pick").
+    /// Cycle the figure slot through the shape family ("shape pick"), in the
+    /// recovered flyout order (lines, shapes, pseudo-3D solids).
     pub fn cycle_figure(&mut self) {
         use notation_core::element::FigureKind as F;
-        let next = match self.tool {
-            Tool::Figure(F::Rectangle) => F::RoundedRectangle,
-            Tool::Figure(F::RoundedRectangle) => F::Ellipse,
-            Tool::Figure(F::Ellipse) => F::Circle,
-            Tool::Figure(F::Circle) => F::Triangle,
-            Tool::Figure(F::Triangle) => F::RightTriangle,
-            Tool::Figure(F::RightTriangle) => F::IsoscelesTriangle,
-            Tool::Figure(F::IsoscelesTriangle) => F::Parallelogram,
-            Tool::Figure(F::Parallelogram) => F::Trapezoid,
-            Tool::Figure(F::Trapezoid) => F::Pentagon,
-            Tool::Figure(F::Pentagon) => F::Hexagon,
-            Tool::Figure(F::Hexagon) => F::Star,
-            Tool::Figure(F::Star) => F::Line,
-            Tool::Figure(F::Line) => F::Arrow,
-            Tool::Figure(F::Arrow) => F::DottedLine,
-            Tool::Figure(F::DottedLine) => F::WavyLine,
-            _ => F::Rectangle,
-        };
+        let chain: [F; 28] = [
+            F::Rectangle,
+            F::Ellipse,
+            F::Circle,
+            F::Triangle,
+            F::RightTriangle,
+            F::IsoscelesTriangle,
+            F::Parallelogram,
+            F::Trapezoid,
+            F::Pentagon,
+            F::Hexagon,
+            F::Star,
+            F::Line,
+            F::Arrow,
+            F::DottedLine,
+            F::ParallelLines,
+            F::WavyLine,
+            F::Arc,
+            F::Segment,
+            F::Pseudo3DCube,
+            F::Pseudo3DCone,
+            F::Pseudo3DCylinder,
+            F::Pseudo3DSphere,
+            F::Pseudo3DHemisphere,
+            F::Pseudo3DDihedron,
+            F::Pseudo3DTriangularPyramid,
+            F::Pseudo3DRectangularPyramid,
+            F::Pseudo3DTruncatedCone,
+            F::RoundedRectangle,
+        ];
+        let next = chain
+            .iter()
+            .skip_while(|&&k| self.tool != Tool::Figure(k))
+            .nth(1)
+            .copied()
+            .unwrap_or(chain[0]);
         self.tool = Tool::Figure(next);
     }
 

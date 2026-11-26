@@ -14,9 +14,13 @@ use serde::{Deserialize, Serialize};
 /// One named set of chrome colors, expressed as CSS color strings.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ThemeTokens {
-    /// The board background — warm paper white (dark: deep charcoal).
+    /// The board background — whiteboard white (dark: deep charcoal).
     pub board: String,
-    /// Dock/toolbar background.
+    /// Window chrome background (dialogs, editor panel).
+    pub chrome: String,
+    /// Window chrome primary text color.
+    pub chrome_text: String,
+    /// Dock/toolbar background (measured translucent silver).
     pub dock: String,
     /// Overlay/dialog surface.
     pub panel: String,
@@ -40,16 +44,20 @@ pub struct ThemeTokens {
 
 /// Tokens for the light chrome (the original's default look).
 pub fn light() -> ThemeTokens {
+    // Measured accents (docs/re/theme.json): the mode-ring / selection blue
+    // is #1E90FF and the product accent blue is #65A0EC.
     ThemeTokens {
-        board: "#F7F6F2".into(),
-        dock: "#F0F1F3".into(),
+        board: "#FFFFFE".into(),
+        chrome: "#F2F3F5".into(),
+        chrome_text: "#1E2126".into(),
+        dock: "#EEF0F3".into(),
         panel: "#FAFBFC".into(),
         separator: "#D5D8DC".into(),
         hover: "#E2EAF3".into(),
-        selection: "#0F7AC4".into(),
-        active_page_bg: "rgba(15, 122, 196, 0.15)".into(),
+        selection: "#1E90FF".into(),
+        active_page_bg: "rgba(30, 144, 255, 0.15)".into(),
         text: "#1E2126".into(),
-        primary: "#0F7AC4".into(),
+        primary: "#65A0EC".into(),
         success: "#2E7D32".into(),
         danger: "#D32F2F".into(),
     }
@@ -59,6 +67,8 @@ pub fn light() -> ThemeTokens {
 pub fn dark() -> ThemeTokens {
     ThemeTokens {
         board: "#23262B".into(),
+        chrome: "#242424".into(),
+        chrome_text: "#ECEFF2".into(),
         dock: "#2A2D33".into(),
         panel: "#34383F".into(),
         separator: "#3A3E45".into(),
@@ -109,6 +119,17 @@ mod tests {
     fn board_colors_match_core_palette() {
         assert_eq!(palette_hex(CorePalette::Blue), "#0F7AC4");
         assert_eq!(palette_hex(CorePalette::White), "#FFFFFF");
+        // The hex palette entry round-trips as its measured quick color.
+        let amber = CorePalette::parse("#FFC511").unwrap();
+        assert_eq!(palette_hex(amber), "#FFC511");
+    }
+
+    #[test]
+    fn accents_match_measured_theme() {
+        // docs/re/theme.json: ring color #1E90FF, product accent #65A0EC.
+        assert_eq!(light().selection, "#1E90FF");
+        assert_eq!(light().primary, "#65A0EC");
+        assert_ne!(dark().selection, light().selection);
     }
 
     #[test]
@@ -123,7 +144,8 @@ mod tests {
     #[test]
     fn tokens_serialize_to_css_strings() {
         let json = serde_json::to_string(&light()).unwrap();
-        assert!(json.contains("#F7F6F2"));
+        // Measured board white (docs/re/theme.json quick palette entry 12).
+        assert!(json.contains("#FFFFFE"));
         let tokens: ThemeTokens = serde_json::from_str(&json).unwrap();
         assert_eq!(tokens, light());
     }
