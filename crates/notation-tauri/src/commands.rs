@@ -270,10 +270,7 @@ pub(crate) async fn open_file_dialog(
 
 #[tauri::command]
 pub(crate) async fn save_file(state: State<'_, AppState>) -> CmdResult {
-    let result = with_state(&state, |app| app.save());
-    if let Err(text) = result {
-        return Err(text);
-    }
+    with_state(&state, |app| app.save())?;
     Ok(snapshot_of(&state))
 }
 
@@ -284,10 +281,7 @@ pub(crate) async fn save_as_dialog(app: tauri::AppHandle, state: State<'_, AppSt
         .await
         .map_err(|e| e.to_string())?;
     if let Some(path) = path {
-        let result = with_state(&state, |app| app.save_as(&path));
-        if let Err(text) = result {
-            return Err(text);
-        }
+        with_state(&state, |app| app.save_as(&path))?;
     }
     Ok(snapshot_of(&state))
 }
