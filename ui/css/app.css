@@ -277,3 +277,24 @@ button { font: inherit; color: var(--text); }
   background: var(--danger); color: #fff;
   opacity: 0.75;
 }
+
+/* --- recovery dialog --------------------------------------------------------- */
+.recovery-card { width: 420px; padding: 14px; }
+.recovery-card h2 { margin: 0 0 4px; font-size: 16px; }
+.recovery-card .muted { color: var(--text); opacity: 0.85; }
+.recovery-card .small-text { font-size: 12px; margin-bottom: 8px; }
+.recovery-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; margin: 4px 0; }
+.recovery-item {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--separator);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recovery-item:hover { background: var(--hover); }
+.recovery-item.selected { border-color: var(--selection); background: var(--active-page-bg); }

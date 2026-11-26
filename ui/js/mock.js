@@ -536,8 +536,25 @@ const commands = {
 
   download_update: () => snapshot(),
   install_update: () => Promise.resolve(),
-  open_recovery: () => snapshot(),
-  discard_recovery: () => snapshot(),
+  open_recovery: ({ path }) => {
+    const store = loadStore();
+    const saved = store.docs && store.docs[path];
+    if (saved) {
+      session.history = { undo: [], redo: [], present: saved };
+    } else {
+      session.history = { undo: [], redo: [], present: newDoc() };
+    }
+    session.filePath = null;
+    session.dirty = true;
+    session.selected = null;
+    session.recovery = session.recovery.filter((o) => o.path !== path);
+    return snapshot();
+  },
+
+  discard_recovery: ({ path }) => {
+    session.recovery = session.recovery.filter((o) => o.path !== path);
+    return snapshot();
+  },
   exit_app: () => {
     session.status = 'Exit is handled by the window in the app build.';
     return snapshot();
@@ -548,6 +565,10 @@ const commands = {
 (function restore() {
   const store = loadStore();
   if (store.settings) session.appSettings = { ...defaultSettings(), ...store.settings };
+  // Optional seeded recovery offers (dev harness: set
+  // localStorage.notation10.mock = {"recoveryOffers":[...]}) to exercise the
+  // crash-recovery prompt without a real autosave directory.
+  if (store.recoveryOffers) session.recovery = store.recoveryOffers;
 })();
 
 /** Dispatch a mock command by name. */

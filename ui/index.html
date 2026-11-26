@@ -135,6 +135,20 @@
       </div>
     </div>
 
+    <!-- Recovery overlay ("The following document is not closed normally..."). -->
+    <div id="recovery-dialog" class="overlay center hidden">
+      <div class="card recovery-card">
+        <h2>Recovery</h2>
+        <div class="muted small-text">The following document is not closed normally at the previous time:</div>
+        <div id="recovery-list" class="recovery-list"></div>
+        <div class="dialog-actions">
+          <button id="recovery-open-btn" class="small-btn">Open</button>
+          <button id="recovery-delete-btn" class="small-btn">Delete</button>
+          <button id="recovery-ignore-btn" class="text-btn">Ignore</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Mock-mode badge (browser dev harness only). -->
     <div id="mock-badge" class="hidden">mock backend</div>
 
