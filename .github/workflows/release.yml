@@ -26,9 +26,9 @@ jobs:
         with:
           node-version: 20
       - name: Sync versions to the tag
-        shell: pwsh
-        run: |
-          node -e "const fs=require('fs');const tag=process.env.TAG.replace(/^v/,'');const confPath='crates/notation-tauri/tauri.conf.json';const conf=JSON.parse(fs.readFileSync(confPath,'utf8'));conf.version=tag;fs.writeFileSync(confPath,JSON.stringify(conf,null,2)+'\n');let cargo=fs.readFileSync('Cargo.toml','utf8');cargo=cargo.replace(/(\[workspace\.package\]\r?\nversion = \")[^\"]+(\")/,`$1${tag}$2`);fs.writeFileSync('Cargo.toml',cargo);console.log('versions synced to',tag);"
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/sync_version.js
       - name: Build NSIS installer
         run: npx -y @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
       - name: Stage artifacts
