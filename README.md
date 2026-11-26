@@ -44,17 +44,16 @@ for development and verification.
 ## Building
 
 ```bash
-# Prerequisites: Rust stable, Node.js 20+ (for the front end and Tauri CLI).
-npm install -g @tauri-apps/cli@^2
+# Prerequisites: Rust stable and Bun 1.3+ (front end and Tauri CLI).
 
 # Bundle the front end first (the shell embeds ui/dist at compile time).
-cd ui && npm ci && npm run build && cd ..
+cd ui && bun install && bun run build && cd ..
 
 # Development (debug build with devtools-friendly webview).
-npx tauri dev --config crates/notation-tauri/tauri.conf.json
+bun x @tauri-apps/cli@^2 dev --config crates/notation-tauri/tauri.conf.json
 
 # Release build (Windows produces the NSIS installer).
-npx tauri build --config crates/notation-tauri/tauri.conf.json --bundles nsis
+bun x @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
 
 # Cross-check the non-GUI crates without any webview dependencies.
 cargo test -p notation-core -p notation-ipc -p notation-storage \
@@ -67,10 +66,10 @@ On Windows the NSIS bundler bootstraps itself on first `tauri build`.
 ## Front-end harness (no native build required)
 
 ```bash
-cd ui && npm ci
-npm run dev        # Vite dev server with hot reload
-npm run build      # bundle to ui/dist
-npm run check      # svelte-check type pass
+cd ui && bun install
+bun run dev        # Vite dev server with hot reload
+bun run build      # bundle to ui/dist
+bun run check      # svelte-check type pass
 python3 -m http.server -d dist 8841
 # open http://localhost:8841/ — the mock backend takes over.
 ```

@@ -56,10 +56,10 @@ impl Stroke {
 
     pub fn push(&mut self, p: Point) {
         // Drop near-duplicate samples to keep documents small.
-        if let Some(last) = self.points.last() {
-            if last.distance_to(p) < 1.0 {
-                return;
-            }
+        if let Some(last) = self.points.last()
+            && last.distance_to(p) < 1.0
+        {
+            return;
         }
         self.points.push(p);
     }

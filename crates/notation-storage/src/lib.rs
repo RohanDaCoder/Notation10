@@ -8,7 +8,7 @@ pub mod enbx;
 pub mod recovery;
 pub mod settings;
 
-pub use enbx::{load_document, save_document, EnbxError};
+pub use enbx::{EnbxError, load_document, save_document};
 pub use settings::{AppSettings, SettingsError, ThemePreference};
 
 use std::path::{Path, PathBuf};

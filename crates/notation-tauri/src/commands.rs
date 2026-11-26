@@ -4,11 +4,11 @@
 //! and returns the resulting [`Snapshot`]. Dialogs and network work run on
 //! blocking threads so the webview never stalls.
 
+use notation_core::PageRatio;
 use notation_core::element::FigureKind;
 use notation_core::geometry::Point;
 use notation_core::stroke::{Palette, StrokeStyle};
 use notation_core::tool::Tool;
-use notation_core::PageRatio;
 use notation_ipc::Snapshot;
 use notation_storage::settings::SpeechSpeed;
 use notation_updater as updater;
