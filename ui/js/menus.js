@@ -261,7 +261,7 @@ export function speechSpeedOptions() {
 
 /** Any modal/dialog open? (mirrors the legacy shortcut suppression bits) */
 export function anyDialogOpen() {
-  return state.showSettings || state.startMenu || state.showAbout;
+  return state.showSettings || state.startMenu || state.showAbout || !!state.recoveryOpen;
 }
 
 export function togglePagePanel() {

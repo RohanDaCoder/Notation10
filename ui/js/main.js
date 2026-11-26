@@ -8,6 +8,7 @@ import { initBoard } from './board.js';
 import { initDock } from './dock.js';
 import { initPages } from './pages.js';
 import { initMenus, refreshChrome, anyDialogOpen, togglePagePanel, toggleStartMenu } from './menus.js';
+import { initRecovery, maybeOfferRecovery } from './recovery.js';
 
 function installMockBackend() {
   // Present the mock dispatcher through the same global the Tauri runtime
@@ -102,12 +103,14 @@ async function boot() {
   applySnapshot(await command('get_state'));
 
   initMenus();
+  initRecovery();
   initDock();
   initPages();
   initBoard();
   refreshChrome();
   installShortcuts();
   installAutosave();
+  maybeOfferRecovery();
 
   // Re-arm the autosave interval when settings change.
   on('snapshot', (snap) => {
