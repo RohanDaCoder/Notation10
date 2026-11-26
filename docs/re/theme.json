@@ -1,0 +1,156 @@
+{
+  "$comment": "Design tokens measured from the shipped EasiNote 5 (Prestigio Note 3.1.4.3735) installer. 1080p-base design units. Feeds the Svelte port's CSS custom properties.",
+  "measurement": {
+    "baseHeight": 1080,
+    "unit": "design-unit (1u = 100vh/1080 at 1080p)",
+    "defaultWindow": [1280, 720],
+    "shellMinWidth": 1440
+  },
+  "shell": {
+    "dockHeight": 80,
+    "dockHideOffset": 24,
+    "dockSlideDurationMs": 200,
+    "subjectChangeToolbarDrop": 118,
+    "subjectChangeDurationMs": 600,
+    "systemTimeMargin": [30, 24],
+    "systemTimeOpacity": 0.8
+  },
+  "dock": {
+    "clusterSkinEdge": [30, 30, 30, 0],
+    "cornerRadius": 16,
+    "collapseButtonWidth": 30,
+    "iconCell": 56,
+    "labelCell": 24,
+    "labelFontSize": 12,
+    "radioLift": 12,
+    "radioAnimMs": 200,
+    "activePillRadius": 20,
+    "disabledOpacity": 0.33,
+    "itemSpacing": 5,
+    "centerClusterSideMargin": 30,
+    "popup": {
+      "topBand": 32,
+      "sideBands": 22,
+      "pointerSize": [50, 34]
+    }
+  },
+  "modeSelector": {
+    "containerSkinEdge": 20,
+    "inkItemWidth": 60,
+    "genericItem": 52,
+    "ring": {
+      "size": 48,
+      "color": "#1E90FF",
+      "thickness": 4,
+      "radius": 12,
+      "offset": [10, 10],
+      "animMs": 200
+    }
+  },
+  "colorSelector": {
+    "panelGradient": ["#030303", "#464646"],
+    "panelRadius": 10,
+    "panelPadding": 5,
+    "swatch": 40,
+    "swatchRadius": 5,
+    "grid": [5, 3],
+    "selectedRing": "#9D1B01",
+    "selectedRingThickness": 2,
+    "eyedropperSize": 40,
+    "opacity": {
+      "sliderHeight": 116,
+      "range": [1, 10],
+      "default": 10,
+      "toggleSize": 40,
+      "iconSize": 18,
+      "strikeColor": "#9E0B0F",
+      "strikeThickness": 5
+    }
+  },
+  "palettes": {
+    "quick12": ["#FF1100", "#FF8B00", "#FFC511", "#66D553", "#331EB5", "#336ED9", "#4FA0B7", "#FF1FCE", "#306D00", "#000000", "#8B7F6E", "#FFFFFE"],
+    "sixStandard": ["#FFFFFF", "#231F20", "#F2343E", "#FFDE17", "#29CC7B", "#00AEEF"],
+    "extended42": ["#F68E56", "#FDE3C7", "#FFFDE3", "#E5FCB8", "#E1F5FD", "#FCD7F6", "#FED7D9", "#F26522", "#F6C086", "#FFF799", "#BAF801", "#ABE3FA", "#FBA7EE", "#FBA7AC", "#FF0000", "#F7941D", "#FFF200", "#0BE73F", "#00BFF3", "#A864A8", "#FF6577", "#9E0B0F", "#814E07", "#A3620A", "#0DA531", "#0076A3", "#662D91", "#C70F7C", "#790000", "#603913", "#5B5601", "#005826", "#003663", "#32004B", "#7B0046", "#FFFFFE", "#D7D7D7", "#ACACAC", "#7D7D7D", "#464646", "#252525", "#000000"]
+  },
+  "startMenu": {
+    "railButtonMinSize": [175, 55],
+    "railRadius": 8,
+    "railFont": 17,
+    "idleGradient": ["#FFFFFF", "#EAEAEA"],
+    "activeGradient": ["#444444", "#000000"],
+    "activeText": "#FFFFFF",
+    "iconSize": 40,
+    "iconMargin": [10, 6],
+    "shadow": {"color": "#BFBFBF", "depth": 2},
+    "separator": {"height": 2, "gradient": ["#CCCCCC", "#FFFFFF"], "blur": 3},
+    "submenuPaneWidth": 120,
+    "externalToolTile": 64,
+    "externalToolFill": "#D8EBF7"
+  },
+  "elementEditor": {
+    "windowSize": [372, 443],
+    "windowMargin": 30,
+    "shadow": {"color": "#B0B0B0", "blur": 30},
+    "tabHeaderSize": [103, 52],
+    "closeButtonSize": [38, 46]
+  },
+  "thickness": {
+    "min": 1,
+    "max": 48,
+    "setterMinWidth": 280
+  },
+  "buttons": {
+    "commonRadius": 8,
+    "yesNoSize": [60, 40],
+    "commonGradient": {
+      "normal": ["#000000", "#333333", "#000000"],
+      "over": ["#000000", "#444444", "#000000"],
+      "pressed": ["#649FEB", "#8AB6F1", "#649FEB"]
+    }
+  },
+  "miniTools": {
+    "calculator": {"window": [360, 530], "displayFont": 28, "bg": "#363636", "accent": "#65A0EC"},
+    "timer": {"window": [456, 350], "control": [456, 280], "digitFont": 52, "digitColor": "#FFF799", "digitStep": [40, 40]},
+    "clock": {"window": 256, "faceSize": 240},
+    "calendar": {"window": [320, 460], "today": "#FAC61B", "headerFont": 20},
+    "shaft": {"min": [1920, 440], "fullHeight": 1080},
+    "spotlight": {"window": [200, 160]},
+    "magnifier": {"window": 777, "ring": 777},
+    "innerBoard": {"window": [1690, 870]},
+    "cyclopedia": {"window": [1120, 666], "accent": "#73A7ED"}
+  },
+  "windows": {
+    "common": {"closeButton": 32, "titleFont": 15},
+    "slideManager": {"width": 350, "bg": "#242424", "accent": "#6495ED", "highlight": "#FF7F50"},
+    "resourceManagement": {"header": [520, 80], "accent": "#65A0EC"},
+    "settings": {"width": 540, "bg": "#F4F4F5", "accent": "#9E0B0F"},
+    "recovery": {"width": 390, "accent": "#F4A460"},
+    "openedWindows": {"card": [200, 90], "accents": ["#1E90FF", "#87CEFA"]}
+  },
+  "roamMinimap": {
+    "size": [320, 180],
+    "border": "#000000",
+    "pointerFrame": "#1E90FF",
+    "pointerFill": "#0F1E90FF",
+    "viewportFrame": "#FF6347",
+    "viewportDash": [5, 5]
+  },
+  "desktopMode": {
+    "traceToolBar": [316, 53],
+    "button": 44,
+    "penChip": [233, 44],
+    "penQuickColors": ["#00BFF3", "#0BE73F", "#FF0000", "#800080", "#FFF200", "#FFFFFF"],
+    "eraserChip": [151, 53],
+    "clearBoard": [170, 52]
+  },
+  "iconChip": {
+    "canvas": 52,
+    "chip": 44,
+    "chipRadius": 8,
+    "chipGradient": ["#E0E0E0", "#C0C0C0"],
+    "glyphColor": "#303030",
+    "inkIconRadius": 10,
+    "inkIconMargin": [3, 2, 4, 5],
+    "inkIconOverlay": 54
+  }
+}
