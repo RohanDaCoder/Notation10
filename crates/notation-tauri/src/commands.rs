@@ -301,6 +301,49 @@ pub(crate) async fn import_text_dialog(
     Ok(snapshot_of(&state))
 }
 
+// -- export -----------------------------------------------------------------------
+
+/// Export the current page as a PNG. The front end renders the page
+/// offscreen (its canvas owns the drawing code) and passes a data URL; we
+/// decode, ask for a destination and write the bytes. Mirrors the original's
+/// start-menu "Export > Image" entry.
+#[tauri::command]
+pub(crate) async fn export_page_png(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    data_url: String,
+    suggested_name: String,
+) -> CmdResult {
+    const PREFIX: &str = "data:image/png;base64,";
+    let Some(b64) = data_url.strip_prefix(PREFIX) else {
+        return Err("unexpected image payload".into());
+    };
+    use base64::Engine as _;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(b64)
+        .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        handle
+            .dialog()
+            .file()
+            .add_filter("Image", &["png"])
+            .set_title("Export image")
+            .set_file_name(&suggested_name)
+            .blocking_save_file()
+            .and_then(|f| f.into_path().ok())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if let Some(path) = path {
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        with_state(&state, |app| app.status = Some("Image exported".into()));
+    }
+    Ok(snapshot_of(&state))
+}
+
 // -- recovery --------------------------------------------------------------------
 
 #[tauri::command]

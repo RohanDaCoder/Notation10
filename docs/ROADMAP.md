@@ -51,7 +51,8 @@ and layout metrics are mirrored.
 | #1 | Autosave recovery snapshots | merged (v0.1.0) |
 | #2 | GUI migration Iced → Tauri 2 | merged (v0.2.0) |
 | #3 | Crash-recovery prompt ("not closed normally") | merged (v0.2.0) |
-| #4+ | Export (PNG per page), unsaved-changes guard, drag-and-drop `.enbx`, mini tools ("Treasure box") | planned |
+| #4 | Export page as PNG (start-menu "Export image") | merged (v0.2.0) |
+| #5+ | Unsaved-changes guard, drag-and-drop `.enbx`, mini tools ("Treasure box") | planned |
 
 ## Phase 5 — Release system *(done)*
 

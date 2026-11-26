@@ -9,6 +9,7 @@ import { SPEECH_SPEED_LABELS } from './model.js';
 import { refreshDock } from './dock.js';
 import { refreshPages } from './pages.js';
 import { requestBoardRender } from './board.js';
+import { exportActivePagePng } from './export.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -133,6 +134,9 @@ async function startMenuAction(action) {
     case 'text-edit':
       applySnapshot(await invoke('import_text_dialog'));
       toggleStartMenu(false);
+      break;
+    case 'export-image':
+      await exportActivePagePng();
       break;
     case 'settings':
       toggleStartMenu(false);
