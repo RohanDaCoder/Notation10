@@ -1,6 +1,6 @@
 [package]
 name = "notation-ui"
-description = "Notation10 shared theme, palette and widget styling"
+description = "Notation10 shared design tokens and palette (front-end agnostic)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,5 +8,8 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-iced = { workspace = true }
 notation-core = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
