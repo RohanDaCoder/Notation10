@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Sync the packaged version to the release tag before building.
-// Usage: TAG=v0.2.0 node scripts/sync_version.js
+// Usage: TAG=v0.2.0 bun scripts/sync_version.js
 //
 // Patches:
 //   - crates/notation-tauri/tauri.conf.json  -> bundle version (artifact name)
 //   - Cargo.toml [workspace.package]         -> crate version (updater compare)
+//   - ui/package.json                        -> front-end package version
 
 const fs = require('fs');
 
@@ -19,6 +20,11 @@ const confPath = 'crates/notation-tauri/tauri.conf.json';
 const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
 conf.version = version;
 fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
+
+const uiPath = 'ui/package.json';
+const ui = JSON.parse(fs.readFileSync(uiPath, 'utf8'));
+ui.version = version;
+fs.writeFileSync(uiPath, JSON.stringify(ui, null, 2) + '\n');
 
 const cargoPath = 'Cargo.toml';
 let cargo = fs.readFileSync(cargoPath, 'utf8');

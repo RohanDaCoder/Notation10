@@ -6,6 +6,19 @@ tag-based semantic version releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Toolchain modernization: the front end and all CI/release workflows now
+  run on **Bun** (`ui/bun.lock` replaces `package-lock.json`); the front end
+  moved to Vite 8 with `@sveltejs/vite-plugin-svelte` 7, Svelte 5.59 and
+  TypeScript 6; GitHub Actions are on the latest majors (checkout v7,
+  setup-bun v2, upload-artifact v7, download-artifact v8); Rust
+  dependencies are on the latest majors/minors (Tauri 2.12, ureq 3,
+  zip 9, dirs 7, sha2 0.11, base64 0.23) and the workspace edition moved
+  to 2024.
+- `scripts/sync_version.js` now also syncs `ui/package.json`, keeping all
+  three packaged versions aligned with the release tag.
+
 ### Added
 
 - Clean-room reverse-engineering report (`docs/re/REPORT.md`) and roadmap.
@@ -16,6 +29,16 @@ tag-based semantic version releases.
 - Iced prototype: multi-page whiteboard canvas, pen/highlighter/eraser,
   shape tools (rectangle, ellipse, line, arrow), text tool, page panel,
   undo/redo, and `.enbx` persistence.
+- Crash-recovery prompt at startup: autosaved snapshots found in the
+  recovery directory are offered with the original's wording ("The
+  following document is not closed normally at the previous time:") and
+  can be opened (as an unsaved document) or deleted; keyboard shortcuts
+  are suppressed while the dialog is open, matching the legacy modal
+  behavior. The mock backend can seed offers for harness testing.
+- Start-menu "Export image": the active page is rendered offscreen at 2x the
+  live board size and saved as a PNG via a native dialog (new
+  `export_page_png` command; base64-decoded payload, status
+  "Image exported"). The browser harness downloads the image instead.
 
 ## [0.2.0] — 2026-11-26
 
@@ -59,20 +82,3 @@ tag-based semantic version releases.
 - `ui/js/mock.js`: in-browser mock backend implementing the full command
   surface for development and automated verification without a native build.
 
-## [Unreleased]
-
-### Added
-
-- Crash-recovery prompt at startup: autosaved snapshots found in the
-  recovery directory are offered with the original's wording ("The
-  following document is not closed normally at the previous time:") and
-  can be opened (as an unsaved document) or deleted; keyboard shortcuts
-  are suppressed while the dialog is open, matching the legacy modal
-  behavior. The mock backend can seed offers for harness testing.
-
-### Added
-
-- Start-menu "Export image": the active page is rendered offscreen at 2x the
-  live board size and saved as a PNG via a native dialog (new
-  `export_page_png` command; base64-decoded payload, status
-  "Image exported"). The browser harness downloads the image instead.

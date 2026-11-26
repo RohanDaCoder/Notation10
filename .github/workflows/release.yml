@@ -17,26 +17,24 @@ jobs:
     env:
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           key: windows-nsis
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - uses: oven-sh/setup-bun@v2
       - name: Sync versions to the tag
         env:
           TAG: ${{ github.ref_name }}
-        run: node scripts/sync_version.js
-      - name: Bundle front end (Svelte 5 + Vite)
-        run: npm ci
+        run: bun scripts/sync_version.js
+      - name: Install front end dependencies (Svelte 5 + Vite)
+        run: bun install --frozen-lockfile
         working-directory: ui
-      - name: Build front end
-        run: npm run build
+      - name: Bundle front end
+        run: bun run build
         working-directory: ui
       - name: Build NSIS installer
-        run: npx -y @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
+        run: bun x @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
       - name: Stage artifacts
         shell: bash
         run: |
@@ -70,7 +68,7 @@ jobs:
           cp "target/release/bundle/nsis/$NAME" .
           cat latest.json
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-windows
           path: |
@@ -83,8 +81,8 @@ jobs:
     needs: build-windows
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
