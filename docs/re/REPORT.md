@@ -112,3 +112,27 @@ Notation10 implements a clean-room `.enbx` container with the same conceptual sh
 - Office/Flash/PPT automation cannot be 1:1; import/export ships PDF/image/ENBX first.
 - Handwriting recognition, cloud resource bank and TTS depend on vendor services —
   stubs with the same UI affordances, no vendor endpoints are contacted.
+
+## 8. Phase-2 deep RE evidence (2026-11-26)
+
+Toolchain: REA 6.10.1 (`rea setup --client zcode`, `doctor` healthy, managed
+static backend smoke-tested on the assemblies) + .NET 10 SDK with ilspycmd
+11.2 for BAML→XAML recovery. 155 XAML views recovered across 19 assemblies;
+toolbar registrations extracted from the managed tool-bar module; image
+resources (811 PNGs inventoried) analyzed programmatically (alpha/luminance
+stats, 9-slice edge measurements, dominant colors).
+
+New evidence files (measured facts; port consumes them):
+
+- `UI-SPEC.md` — shell, dock, flyouts, mode ring, color selector, start menu,
+  element editor, windows, subject scenes, desktop mode, icon chip style.
+- `theme.json` — machine-readable design tokens (sizes, colors, palettes).
+- `TOOLBAR.md` — dock groups/sort order, per-tool mode lists, icon inventory
+  and glyph notes for the original SVG redraws.
+- `MINI-TOOLS.md` — Calculator, Timer, Clock, Calendar, Shaft, SpotLight,
+  Magnifier, InnerBoard, Cyclopedia, FlashWindow and shared controls.
+
+Key corrections vs. Phase-1 assumptions: the UI is dock-toolbar-driven (not
+menu-rail-driven), all layout is 1080p-relative units, the default quick
+palette is 12 colors (not 15), and InkRecognization is hidden in English
+display mode.
