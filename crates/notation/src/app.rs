@@ -77,6 +77,9 @@ pub enum Message {
     // -- element editor (selected text element) ---------------------------------
     SelectedTextEdited(String),
     SelectedTextBlurred,
+
+    // -- autosave ---------------------------------------------------------------
+    AutosaveTick,
 }
 
 /// UI mirror of `notation_storage::settings::SpeechSpeed` (keeps iced out of storage).
@@ -378,7 +381,19 @@ pub fn subscription(app: &Notation) -> Subscription<Message> {
         shortcut_state_bits(app),
         std::sync::atomic::Ordering::Relaxed,
     );
-    on_key_press(shortcut_fn)
+
+    let shortcuts = on_key_press(shortcut_fn);
+
+    if app.app_settings.autosave_enabled {
+        // Autosave interval from settings, like the original's recovery.
+        let secs = app.app_settings.autosave_interval_secs.max(10);
+        Subscription::batch(vec![
+            shortcuts,
+            iced::time::every(std::time::Duration::from_secs(secs)).map(|_| Message::AutosaveTick),
+        ])
+    } else {
+        shortcuts
+    }
 }
 
 fn shortcut_state_bits(app: &Notation) -> u8 {
@@ -801,6 +816,27 @@ pub fn update(app: &mut Notation, message: Message) -> Task<Message> {
             Task::none()
         }
         SelectedTextBlurred => Task::none(),
+
+        // ----------------------------------------------------------------------
+        // Autosave
+        // ----------------------------------------------------------------------
+        AutosaveTick => {
+            if app.dirty {
+                if let Ok(dir) = notation_storage::recovery_dir() {
+                    if let Err(e) = notation_storage::recovery::write_snapshot(&dir, app.doc()) {
+                        app.update_state.status = Some(format!("autosave failed: {e}"));
+                    } else {
+                        // Retain only the newest snapshots, like the original's
+                        // recovery list.
+                        let snapshots = notation_storage::recovery::list_snapshots(&dir);
+                        for old in snapshots.iter().skip(10) {
+                            let _ = notation_storage::recovery::remove_snapshot(old);
+                        }
+                    }
+                }
+            }
+            Task::none()
+        }
     }
 }
 
