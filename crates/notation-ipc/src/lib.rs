@@ -506,4 +506,119 @@ mod tests {
         a.apply_update_download(Err("network".into()));
         assert_eq!(a.status.as_deref(), Some("Download failed: network"));
     }
+
+    // -- Phase 4: measured palettes, figure family, editor commands ----------
+
+    #[test]
+    fn hex_palette_routes_and_roundtrips() {
+        let mut a = app();
+        a.set_tool(Tool::Pen(StrokeStyle::HardPen));
+        let amber = Palette::parse("#FFC511").unwrap();
+        a.set_color(amber);
+        assert_eq!(a.settings.pen_color, amber);
+        // Snapshots serialize the measured color as a flat #RRGGBB string.
+        let json = serde_json::to_value(a.snapshot().tool_settings).unwrap();
+        assert_eq!(json["pen_color"], serde_json::json!("#FFC511"));
+    }
+
+    #[test]
+    fn line_family_stays_open_pseudo3d_gets_filled() {
+        let mut a = app();
+        a.commit_figure(
+            FigureKind::Arc,
+            Point::new(10.0, 10.0),
+            Point::new(90.0, 90.0),
+        );
+        a.commit_figure(
+            FigureKind::Pseudo3DCube,
+            Point::new(10.0, 10.0),
+            Point::new(90.0, 90.0),
+        );
+        let page = &a.doc().pages[0];
+        match &page.elements[0] {
+            Element::Figure { kind, fill, .. } => {
+                assert_eq!(*kind, FigureKind::Arc);
+                assert_eq!(*fill, notation_core::element::FillMode::None);
+            }
+            other => panic!("expected figure, got {other:?}"),
+        }
+        match &page.elements[1] {
+            Element::Figure { fill, .. } => {
+                assert!(matches!(fill, notation_core::element::FillMode::Solid(_)));
+            }
+            other => panic!("expected figure, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cycle_figure_walks_the_full_recovered_chain() {
+        let mut a = app();
+        a.set_tool(Tool::Figure(FigureKind::Rectangle));
+        for _ in 0..28 {
+            a.cycle_figure();
+        }
+        // A full walk returns to the first entry of the chain.
+        assert_eq!(a.tool, Tool::Figure(FigureKind::Rectangle));
+        a.set_tool(Tool::Figure(FigureKind::Pseudo3DSphere));
+        a.cycle_figure();
+        assert_eq!(a.tool, Tool::Figure(FigureKind::Pseudo3DHemisphere));
+    }
+
+    #[test]
+    fn figure_flyout_setters_update_colors_and_width() {
+        let mut a = app();
+        let blue = Palette::parse("#336ED9").unwrap();
+        a.set_figure_colors(Some(blue), None, Some(7.5));
+        assert_eq!(a.settings.figure_line, blue);
+        assert_eq!(a.settings.figure_line_width, 7.5);
+        // Out-of-range widths clamp to the measured 1..=48 flyout range.
+        a.set_figure_colors(None, Some(Palette::Green), Some(80.0));
+        assert_eq!(a.settings.figure_fill, Palette::Green);
+        assert_eq!(a.settings.figure_line_width, 48.0);
+    }
+
+    #[test]
+    fn text_style_restyles_selected_text_live() {
+        let mut a = app();
+        a.set_tool(Tool::Text);
+        a.board_press(Point::new(60.0, 60.0));
+        a.set_text_style(Some(32.0), Some(true), Some(false));
+        match &a.doc().pages[0].elements[0] {
+            Element::Text { size, bold, .. } => {
+                assert_eq!(*size, 32.0);
+                assert!(*bold);
+            }
+            other => panic!("expected text, got {other:?}"),
+        }
+        // Defaults for future text elements follow too.
+        assert_eq!(a.settings.text_size, 32.0);
+        assert!(a.settings.text_bold);
+    }
+
+    #[test]
+    fn clear_page_is_undoable() {
+        let mut a = app();
+        a.commit_figure(
+            FigureKind::Rectangle,
+            Point::new(0.0, 0.0),
+            Point::new(50.0, 50.0),
+        );
+        a.clear_page();
+        assert!(a.doc().pages[0].elements.is_empty());
+        a.undo();
+        assert_eq!(a.doc().pages[0].elements.len(), 1);
+    }
+
+    #[test]
+    fn writing_backgrounds_set_and_roundtrip() {
+        use notation_core::Background;
+        let mut a = app();
+        a.set_page_background(Background::Mizige);
+        assert_eq!(a.doc().pages[0].background, Background::Mizige);
+        a.set_page_background(Background::FourLine);
+        assert_eq!(a.doc().pages[0].background, Background::FourLine);
+        // Backgrounds serialize as flat strings for the front end.
+        let json = serde_json::to_value(a.doc()).unwrap();
+        assert_eq!(json["pages"][0]["background"], "FourLine");
+    }
 }

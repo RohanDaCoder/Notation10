@@ -99,23 +99,6 @@ export const T = {
   },
 } as const;
 
-/** Quick palette entry -> nearest backend palette name (Phase 4 makes the
- *  backend palette full RGB and this mapping disappears). */
-const NEAREST: Array<[string, string]> = [
-  ['#FF1100', 'Red'],
-  ['#FF8B00', 'Orange'],
-  ['#FFC511', 'Yellow'],
-  ['#66D553', 'Green'],
-  ['#331EB5', 'Blue'],
-  ['#336ED9', 'Blue'],
-  ['#4FA0B7', 'Blue'],
-  ['#FF1FCE', 'Purple'],
-  ['#306D00', 'Green'],
-  ['#000000', 'Black'],
-  ['#8B7F6E', 'Black'],
-  ['#FFFFFE', 'White'],
-];
-
 export function hexToRgb(hex: string): [number, number, number] {
   const v = hex.replace('#', '');
   return [
@@ -127,15 +110,4 @@ export function hexToRgb(hex: string): [number, number, number] {
 
 export function rgbToHex(rgb: [number, number, number]): string {
   return '#' + rgb.map((c) => c.toString(16).padStart(2, '0')).join('').toUpperCase();
-}
-
-/** Index of a quick-palette hex (or -1). */
-export function quickIndex(hex: string): number {
-  return T.palettes.quick12.findIndex((c) => c.toUpperCase() === hex.toUpperCase());
-}
-
-/** Backend palette name for a quick-palette index. */
-export function nearestPaletteName(hex: string): string {
-  const hit = NEAREST.find(([h]) => h === hex);
-  return hit ? hit[1] : 'Black';
 }

@@ -183,20 +183,20 @@ type Cmd = (args: any) => any;
 const commands: Record<string, Cmd> = {
   get_state: () => snapshot(),
 
-  // Token values mirror notation-ui (light/dark) so rendering matches the
-  // app build in the browser harness.
+  // Token values mirror notation-ui (light/dark, measured accents) so
+  // rendering matches the app build in the browser harness.
   design_tokens: () => ({
     light: {
-      board: '#F7F6F2', dock: '#F0F1F3', panel: '#FAFBFC', separator: '#D5D8DC',
-      hover: '#E2EAF3', selection: '#0F7AC4', active_page_bg: 'rgba(15, 122, 196, 0.15)',
-      text: '#1E2126', primary: '#0F7AC4', success: '#2E7D32', danger: '#D32F2F',
-      chrome: '#F4F4F4', chromeText: '#1F1F1F',
+      board: '#FFFFFE', dock: '#EEF0F3', panel: '#FAFBFC', separator: '#D5D8DC',
+      chrome: '#F2F3F5', chromeText: '#1E2126',
+      hover: '#E2EAF3', selection: '#1E90FF', active_page_bg: 'rgba(30, 144, 255, 0.15)',
+      text: '#1E2126', primary: '#65A0EC', success: '#2E7D32', danger: '#D32F2F',
     },
     dark: {
       board: '#23262B', dock: '#2A2D33', panel: '#34383F', separator: '#3A3E45',
+      chrome: '#242424', chromeText: '#ECEFF2',
       hover: '#353B45', selection: '#3E8EDE', active_page_bg: 'rgba(62, 142, 222, 0.18)',
       text: '#ECEFF2', primary: '#3E8EDE', success: '#4CAF50', danger: '#E5484D',
-      chrome: '#242424', chromeText: '#F0F0F0',
     },
   }),
 

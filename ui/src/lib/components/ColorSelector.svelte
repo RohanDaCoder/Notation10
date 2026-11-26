@@ -3,7 +3,7 @@
   // radius 5, #9D1B01 selected ring) + the eyedropper tile. The dock flyouts
   // run with the opacity column disabled, exactly like the original.
 
-  import { T, nearestPaletteName } from '../tokens.js';
+  import { T } from '../tokens.js';
 
   let {
     hexes = T.palettes.quick12,
@@ -17,16 +17,15 @@
     onpick?: () => void;
   } = $props();
 
-  /** The backend consumes named palette entries; hex entries map to the
-   *  nearest name until notation-core goes full RGB (Phase 4). */
+  /** The backend palette carries arbitrary #RRGGBB entries since Phase 4, so
+   *  the measured quick palette colors pass through unchanged. */
   function choose(hex: string) {
-    onselect(hex.startsWith('#') ? nearestPaletteName(hex) : hex);
+    onselect(hex);
   }
 
   function sameish(hex: string): boolean {
     if (!selected) return false;
-    if (selected === hex) return true;
-    return nearestPaletteName(hex) === selected;
+    return selected.toUpperCase() === hex.toUpperCase();
   }
 </script>
 
