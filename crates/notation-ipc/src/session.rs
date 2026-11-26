@@ -38,6 +38,76 @@ impl IpcApp {
         self.settings.pen_width = width;
     }
 
+    /// Figure flyout setters (line color / fill color / line width), like
+    /// the original FigureContent panel.
+    pub fn set_figure_colors(
+        &mut self,
+        line: Option<notation_core::Palette>,
+        fill: Option<notation_core::Palette>,
+        width: Option<f32>,
+    ) {
+        if let Some(line) = line {
+            self.settings.figure_line = line;
+        }
+        if let Some(fill) = fill {
+            self.settings.figure_fill = fill;
+        }
+        if let Some(width) = width {
+            self.settings.figure_line_width = width.clamp(1.0, 48.0);
+        }
+    }
+
+    /// Font panel setters (size / bold / italic) for text elements.
+    pub fn set_text_style(&mut self, size: Option<f32>, bold: Option<bool>, italic: Option<bool>) {
+        if let Some(size) = size {
+            self.settings.text_size = size.clamp(6.0, 256.0);
+        }
+        if let Some(bold) = bold {
+            self.settings.text_bold = bold;
+        }
+        if let Some(italic) = italic {
+            self.settings.text_italic = italic;
+        }
+        // Restyle the selected text element live, like the original editor.
+        if let Some(selected) = self.selected {
+            if let Some(page) = self.doc_mut().active_page_mut() {
+                if let Some(Element::Text {
+                    size: el_size,
+                    bold: el_bold,
+                    italic: el_italic,
+                    ..
+                }) = page.elements.get_mut(selected)
+                {
+                    if let Some(new_size) = size {
+                        *el_size = new_size.clamp(6.0, 256.0);
+                    }
+                    if let Some(new_bold) = bold {
+                        *el_bold = new_bold;
+                    }
+                    if let Some(new_italic) = italic {
+                        *el_italic = new_italic;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Set the active page's writing background (text templates), undoable.
+    pub fn set_page_background(&mut self, background: notation_core::Background) {
+        self.checkpoint();
+        if let Some(page) = self.doc_mut().active_page_mut() {
+            page.background = background;
+        }
+    }
+
+    /// "Clear this page" from the eraser flyout's clear-board chip.
+    pub fn clear_page(&mut self) {
+        self.checkpoint();
+        if let Some(page) = self.doc_mut().active_page_mut() {
+            page.elements.clear();
+        }
+    }
+
     /// Cycle the figure slot through the shape family ("shape pick").
     pub fn cycle_figure(&mut self) {
         use notation_core::element::FigureKind as F;
@@ -125,7 +195,8 @@ impl IpcApp {
                 self.checkpoint();
                 self.erase_at(position);
             }
-            Tool::Eraser(EraserMode::Select) | Tool::Figure(_) => {}
+            // Roam pans the viewport client-side; figures drag on release.
+            Tool::Eraser(EraserMode::Select) | Tool::Figure(_) | Tool::Roam => {}
         }
         if self.tool == Tool::Fill {
             self.fill_at(position);

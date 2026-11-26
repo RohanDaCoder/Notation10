@@ -11,11 +11,15 @@ application (NoteSetup 3.1.4.3735 — a rebrand of Seewo/CVTE **EasiNote 5**) in
 
 ## Status
 
-Prototype — multi-page whiteboard canvas with pen/highlighter/brush/laser/
-smart-shape/shape/eraser/fill/text tools, page management, `.enbx`
-courseware persistence, light/dark theming, autosave recovery, and a
-GitHub-Releases based in-app updater. The GUI runs on Tauri 2 (webview
-front end + Rust command layer); all interactive logic lives in
+Prototype — multi-page whiteboard canvas with the recovered 1:1 dock
+layout (menu / tool / page clusters), pen modes (hard pen, highlighter,
+brush, bamboo, laser, magic, texture), stroke/area erasers, the full figure
+palette (plain shapes, line family, pseudo-3D solids, fill), slide roam with
+zoom, start menu, element editor with font panel, page manager, settings,
+crash recovery, desktop-mode trace toolbar, and the mini-tool suite
+(calculator, clock, timer, calendar, ruler, spotlight, magnifier,
+cyclopedia, side board). `.enbx` courseware persistence, light/dark theming
+and a GitHub-Releases based in-app updater are wired through
 GUI-agnostic crates with unit tests.
 
 ## Crate layout
@@ -29,16 +33,22 @@ GUI-agnostic crates with unit tests.
 | `notation-ui` | Design tokens (theme palette as serializable data) |
 | `notation-updater` | GitHub Releases update client with `latest.json` manifest + SHA-256 |
 
-The front end (`ui/`) is dependency-free HTML/CSS/ES-modules; it renders the
-whiteboard on a canvas and talks to the Rust layer through Tauri commands. It
-also runs standalone in a plain browser against a mock backend (`ui/js/mock.js`)
+The front end (`ui/`) is a **Svelte 5 + TypeScript + Vite** app (compiled,
+no runtime framework code on the board's hot path). It renders the
+whiteboard on a canvas, mirrors the recovered design system
+(`docs/re/theme.json` — 1080p-relative design units through the `--rp`
+CSS scale) and talks to the Rust layer through Tauri commands. It also runs
+standalone in a plain browser against a mock backend (`ui/src/lib/mock.ts`)
 for development and verification.
 
 ## Building
 
 ```bash
-# Prerequisites: Rust stable, Node.js 20+ (for the Tauri CLI).
+# Prerequisites: Rust stable, Node.js 20+ (for the front end and Tauri CLI).
 npm install -g @tauri-apps/cli@^2
+
+# Bundle the front end first (the shell embeds ui/dist at compile time).
+cd ui && npm ci && npm run build && cd ..
 
 # Development (debug build with devtools-friendly webview).
 npx tauri dev --config crates/notation-tauri/tauri.conf.json
@@ -57,8 +67,12 @@ On Windows the NSIS bundler bootstraps itself on first `tauri build`.
 ## Front-end harness (no native build required)
 
 ```bash
-cd ui && python3 -m http.server 8841
-# open http://localhost:8841/index.html — a mock backend takes over.
+cd ui && npm ci
+npm run dev        # Vite dev server with hot reload
+npm run build      # bundle to ui/dist
+npm run check      # svelte-check type pass
+python3 -m http.server -d dist 8841
+# open http://localhost:8841/ — the mock backend takes over.
 ```
 
 ## Releases and updates
