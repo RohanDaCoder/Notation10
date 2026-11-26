@@ -69,3 +69,10 @@ tag-based semantic version releases.
   can be opened (as an unsaved document) or deleted; keyboard shortcuts
   are suppressed while the dialog is open, matching the legacy modal
   behavior. The mock backend can seed offers for harness testing.
+
+### Added
+
+- Start-menu "Export image": the active page is rendered offscreen at 2x the
+  live board size and saved as a PNG via a native dialog (new
+  `export_page_png` command; base64-decoded payload, status
+  "Image exported"). The browser harness downloads the image instead.

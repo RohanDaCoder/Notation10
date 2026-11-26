@@ -2216,6 +2216,7 @@ dependencies = [
 name = "notation-tauri"
 version = "0.2.0"
 dependencies = [
+ "base64 0.22.1",
  "notation-core",
  "notation-ipc",
  "notation-storage",

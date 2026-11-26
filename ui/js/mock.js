@@ -536,6 +536,17 @@ const commands = {
 
   download_update: () => snapshot(),
   install_update: () => Promise.resolve(),
+
+  // The browser harness performs the "export" as a local download so the
+  // rendering pipeline can be verified without a native save dialog.
+  export_page_png: async ({ dataUrl, suggestedName }) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = suggestedName;
+    a.click();
+    session.status = 'Image exported';
+    return snapshot();
+  },
   open_recovery: ({ path }) => {
     const store = loadStore();
     const saved = store.docs && store.docs[path];

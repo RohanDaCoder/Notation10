@@ -61,6 +61,7 @@ pub fn run() {
             commands::save_file,
             commands::save_as_dialog,
             commands::import_text_dialog,
+            commands::export_page_png,
             commands::set_language,
             commands::toggle_theme,
             commands::set_autosave,
