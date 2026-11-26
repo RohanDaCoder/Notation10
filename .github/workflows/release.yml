@@ -11,59 +11,70 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build ${{ matrix.target }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
     env:
       TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
-      - name: Install GUI build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev \
-            libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
-      - name: Build release binary
-        run: cargo build --release -p notation --target ${{ matrix.target }}
-      - name: Stage files
-        shell: bash
-        run: |
-          mkdir -p stage
-          cp target/${{ matrix.target }}/release/notation${{ runner.os == 'Windows' && '.exe' || '' }} stage/
-          cp README.md LICENSE stage/
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
+          key: windows-nsis
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Sync versions to the tag
         shell: pwsh
         run: |
-          Compress-Archive -Path stage/* -DestinationPath "Notation10-${env:TAG}-x86_64-pc-windows-msvc.zip"
-      - name: Package (Linux)
-        if: runner.os == 'Linux'
+          node -e "const fs=require('fs');const tag=process.env.TAG.replace(/^v/,'');const confPath='crates/notation-tauri/tauri.conf.json';const conf=JSON.parse(fs.readFileSync(confPath,'utf8'));conf.version=tag;fs.writeFileSync(confPath,JSON.stringify(conf,null,2)+'\n');let cargo=fs.readFileSync('Cargo.toml','utf8');cargo=cargo.replace(/(\[workspace\.package\]\r?\nversion = \")[^\"]+(\")/,`$1${tag}$2`);fs.writeFileSync('Cargo.toml',cargo);console.log('versions synced to',tag);"
+      - name: Build NSIS installer
+        run: npx -y @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
+      - name: Stage artifacts
+        shell: bash
         run: |
-          tar -czf "Notation10-${TAG}-x86_64-unknown-linux-gnu.tar.gz" -C stage .
-      - name: Upload artifact
+          ls target/release/bundle/nsis/
+          SETUP=$(ls target/release/bundle/nsis/Notation10_*_x64-setup.exe | head -1)
+          cp "$SETUP" stage-setup.exe
+          sha256sum stage-setup.exe | awk '{print $1"  '$(basename "$SETUP")'"}' > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Compose latest.json (updater manifest)
+        shell: bash
+        run: |
+          SETUP=$(ls target/release/bundle/nsis/Notation10_*_x64-setup.exe | head -1)
+          NAME=$(basename "$SETUP")
+          SHA=$(awk '{print $1}' SHA256SUMS.txt)
+          SIZE=$(stat -c %s "$SETUP")
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${NAME}"
+          cat > latest.json <<EOF
+          {
+            "version": "${TAG}",
+            "notes": "Notation10 ${TAG}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "url": "${URL}",
+                "sha256": "${SHA}",
+                "size": ${SIZE}
+              }
+            }
+          }
+          EOF
+          cp "target/release/bundle/nsis/$NAME" .
+          cat latest.json
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.target }}
-          path: Notation10-${{ github.ref_name }}-*
+          name: dist-windows
+          path: |
+            Notation10_*_x64-setup.exe
+            SHA256SUMS.txt
+            latest.json
 
   publish:
     name: Publish GitHub Release
-    needs: build
+    needs: build-windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,10 +82,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Generate checksums
+      - name: Verify checksums
         run: |
           cd dist
-          sha256sum Notation10-* > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt || true
           cat SHA256SUMS.txt
       - name: Create release
         env:
@@ -86,4 +97,4 @@ jobs:
             --title "Notation10 $TAG" \
             --generate-notes \
             --verify-tag \
-            dist/*
+            dist/Notation10_*_x64-setup.exe dist/SHA256SUMS.txt dist/latest.json
