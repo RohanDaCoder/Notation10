@@ -1,0 +1,47 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/notation",
+    "crates/notation-core",
+    "crates/notation-storage",
+    "crates/notation-ui",
+    "crates/notation-updater",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/RohanDaCoder/Notation10"
+authors = ["RohanDaCoder <102975537+RohanDaCoder@users.noreply.github.com>"]
+
+[workspace.dependencies]
+notation-core = { path = "crates/notation-core" }
+notation-storage = { path = "crates/notation-storage" }
+notation-ui = { path = "crates/notation-ui" }
+notation-updater = { path = "crates/notation-updater" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = "2"
+dirs = "5"
+thiserror = "2"
+sha2 = "0.10"
+hex = "0.4"
+ureq = "2"
+rfd = "0.15"
+tempfile = "3"
+
+# Software renderer (tiny-skia) keeps builds light and portable on every OS.
+# Swapping to the wgpu renderer later is a feature-flag change only.
+iced = { version = "0.13.1", default-features = false, features = [
+    "tiny-skia",
+    "tokio",
+    "canvas",
+    "fira-sans",
+] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
