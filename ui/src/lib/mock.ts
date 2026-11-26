@@ -4,12 +4,14 @@
 // the Rust backend remains the single source of truth in the app.
 
 import {
-  hitElements, recognizeShape, rectFromPoints, rectIntersects, elementBounds,
+  figureIsClosed, hitElements, recognizeShape, rectFromPoints, rectIntersects, elementBounds,
 } from './model.js';
+import type { Element, FigureKind, Page, Tool } from './model.js';
+import type { AppSettings, Snapshot, ToolSettings } from './store.svelte.js';
 
 const STORE_KEY = 'notation10.mock';
 
-function defaultSettings() {
+function defaultSettings(): AppSettings {
   return {
     language: 'en', theme: 'Light', default_pen_color: 'Black',
     default_figure_fill: 'Blue', default_font_size: 24, speech_speed: 'Normal',
@@ -18,7 +20,7 @@ function defaultSettings() {
   };
 }
 
-function defaultToolSettings() {
+function defaultToolSettings(): ToolSettings {
   return {
     pen_color: 'Black', pen_width: 3, figure_line: 'Black', figure_fill: 'Blue',
     figure_line_width: 2, text_color: 'Black', text_size: 24,
@@ -26,14 +28,16 @@ function defaultToolSettings() {
   };
 }
 
-function newDoc(ratio = 'W43') {
+function newDoc(ratio: 'W43' | 'W169' = 'W43') {
   return {
     version: 1, ratio, active: 0,
-    pages: [{ background: 'Plain', notes: '', elements: [] }],
+    pages: [{ background: 'Plain', notes: '', elements: [] }] as Page[],
   };
 }
 
-function loadStore() {
+interface MockDoc { version: number; ratio: 'W43' | 'W169'; active: number; pages: Page[] }
+
+function loadStore(): any {
   try {
     return JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
   } catch {
@@ -41,30 +45,30 @@ function loadStore() {
   }
 }
 
-function saveStore(store) {
+function saveStore(store: any) {
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
 }
 
-const APP_VERSION = '0.2.0-mock';
+const APP_VERSION = '0.3.0-mock';
 
 const session = {
-  history: { undo: [], redo: [], present: newDoc() },
-  tool: 'Select',
+  history: { undo: [] as MockDoc[], redo: [] as MockDoc[], present: newDoc() as MockDoc },
+  tool: 'Select' as Tool,
   settings: defaultToolSettings(),
   appSettings: defaultSettings(),
-  filePath: null,
+  filePath: null as string | null,
   dirty: false,
-  selected: null,
-  status: null,
-  update: { checking: false, downloading: false, available: null, staged: null },
-  recovery: [],
+  selected: null as number | null,
+  status: null as string | null,
+  update: { checking: false, downloading: false, available: null, staged: null } as Snapshot['update'],
+  recovery: [] as Array<{ path: string; file_name: string }>,
 };
 
-function doc() {
+function doc(): MockDoc {
   return session.history.present;
 }
 
-function commit(next) {
+function commit(next: MockDoc) {
   session.history.undo.push(session.history.present);
   if (session.history.undo.length > 100) session.history.undo.shift();
   session.history.present = next;
@@ -77,22 +81,22 @@ function checkpoint() {
   session.history.redo = [];
 }
 
-function mutPage() {
+function mutPage(): Page {
   session.dirty = true;
   return activePage();
 }
 
-function activePage() {
+function activePage(): Page {
   return doc().pages[Math.min(doc().active, doc().pages.length - 1)];
 }
 
-function snapshot() {
+function snapshot(): Snapshot {
   const displayName = session.filePath
     ? session.filePath.replace(/^mock:\/\//, '').replace(/\.enbx$/, '')
     : 'New document';
   return {
     app_version: APP_VERSION,
-    doc: structuredClone(doc()),
+    doc: structuredClone(doc()) as Snapshot['doc'],
     active_page: Math.min(doc().active, doc().pages.length - 1),
     page_count: doc().pages.length,
     can_undo: session.history.undo.length > 0,
@@ -116,11 +120,14 @@ function persistSettings() {
   saveStore(store);
 }
 
-function pickFile(accept) {
+interface PickedFile { name: string; text: string }
+
+function pickFile(accept: string): Promise<PickedFile | null> {
   return new Promise((resolve) => {
     const input = document.getElementById(
       accept.includes('txt') ? 'mock-text-input' : 'mock-open-input',
-    );
+    ) as HTMLInputElement | null;
+    if (!input) return resolve(null);
     input.value = '';
     input.onchange = () => {
       const file = input.files && input.files[0];
@@ -134,9 +141,46 @@ function pickFile(accept) {
   });
 }
 
+// Erase strokes near a point (stroke eraser).
+function eraseAt(x: number, y: number) {
+  const page = mutPage();
+  page.elements = page.elements.filter((el) => {
+    if (!('Stroke' in el) || !el.Stroke) return true;
+    const s = el.Stroke;
+    const w = Math.max(s.width, 8.0);
+    for (let i = 0; i + 1 < s.points.length; i++) {
+      const a = s.points[i];
+      const b = s.points[i + 1];
+      const abx = b.x - a.x, aby = b.y - a.y;
+      const lenSq = abx * abx + aby * aby;
+      let t = lenSq === 0 ? 0 : ((x - a.x) * abx + (y - a.y) * aby) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      if (Math.hypot(x - (a.x + t * abx), y - (a.y + t * aby)) <= w / 2 + 8.0) return false;
+    }
+    return true;
+  }) as Element[];
+}
+
+// Fill the topmost figure under a point.
+function fillAt(x: number, y: number) {
+  const hits = hitElements(activePage(), x, y);
+  const target = hits[0];
+  if (target === undefined) return;
+  const page = mutPage();
+  const el = page.elements[target];
+  if ('Figure' in el && el.Figure) el.Figure.fill = { Solid: session.settings.figure_fill };
+}
+
+function gotoPage(index: number) {
+  doc().active = Math.min(index, doc().pages.length - 1);
+  return snapshot();
+}
+
 // --- command implementations -------------------------------------------
 
-const commands = {
+type Cmd = (args: any) => any;
+
+const commands: Record<string, Cmd> = {
   get_state: () => snapshot(),
 
   // Token values mirror notation-ui (light/dark) so rendering matches the
@@ -146,11 +190,13 @@ const commands = {
       board: '#F7F6F2', dock: '#F0F1F3', panel: '#FAFBFC', separator: '#D5D8DC',
       hover: '#E2EAF3', selection: '#0F7AC4', active_page_bg: 'rgba(15, 122, 196, 0.15)',
       text: '#1E2126', primary: '#0F7AC4', success: '#2E7D32', danger: '#D32F2F',
+      chrome: '#F4F4F4', chromeText: '#1F1F1F',
     },
     dark: {
       board: '#23262B', dock: '#2A2D33', panel: '#34383F', separator: '#3A3E45',
       hover: '#353B45', selection: '#3E8EDE', active_page_bg: 'rgba(62, 142, 222, 0.18)',
       text: '#ECEFF2', primary: '#3E8EDE', success: '#4CAF50', danger: '#E5484D',
+      chrome: '#242424', chromeText: '#F0F0F0',
     },
   }),
 
@@ -160,8 +206,8 @@ const commands = {
   },
 
   set_color: ({ color }) => {
-    if (session.tool.Pen) session.settings.pen_color = color;
-    else if (session.tool.Figure) session.settings.figure_line = color;
+    if (typeof session.tool === 'object' && 'Pen' in session.tool) session.settings.pen_color = color;
+    else if (typeof session.tool === 'object' && 'Figure' in session.tool) session.settings.figure_line = color;
     else if (session.tool === 'Text') session.settings.text_color = color;
     return snapshot();
   },
@@ -171,13 +217,32 @@ const commands = {
     return snapshot();
   },
 
+  set_figure_colors: ({ line, fill, width }) => {
+    if (line != null) session.settings.figure_line = line;
+    if (fill != null) session.settings.figure_fill = fill;
+    if (width != null) session.settings.figure_line_width = width;
+    return snapshot();
+  },
+
+  set_text_style: ({ size, bold, italic }) => {
+    if (size != null) session.settings.text_size = size;
+    if (bold != null) session.settings.text_bold = bold;
+    if (italic != null) session.settings.text_italic = italic;
+    return snapshot();
+  },
+
+  set_page_background: ({ background }) => {
+    checkpoint();
+    activePage().background = background;
+    session.dirty = true;
+    return snapshot();
+  },
+
   cycle_figure: () => {
-    const order = [
-      'Rectangle', 'RoundedRectangle', 'Ellipse', 'Circle', 'Triangle',
-      'RightTriangle', 'IsoscelesTriangle', 'Parallelogram', 'Trapezoid',
-      'Pentagon', 'Hexagon', 'Star', 'Line', 'Arrow', 'DottedLine', 'WavyLine',
-    ];
-    const current = session.tool.Figure || 'Rectangle';
+    const order: FigureKind[] = ['Rectangle', 'RoundedRectangle', 'Ellipse', 'Circle', 'Triangle',
+      'RightTriangle', 'IsoscelesTriangle', 'Parallelogram', 'Trapezoid', 'Pentagon', 'Hexagon',
+      'Star', 'Line', 'Arrow', 'DottedLine', 'WavyLine'];
+    const current = (typeof session.tool === 'object' && 'Figure' in session.tool ? session.tool.Figure : 'Rectangle');
     session.tool = { Figure: order[(order.indexOf(current) + 1) % order.length] };
     return snapshot();
   },
@@ -201,19 +266,16 @@ const commands = {
     return snapshot();
   },
 
-  goto_page: (index) => {
-    doc().active = Math.min(index, doc().pages.length - 1);
-    return snapshot();
-  },
+  goto_page: ({ index }: any) => gotoPage(index),
 
-  next_page: () => commands.goto_page(Math.min(doc().active + 1, doc().pages.length - 1)),
-  previous_page: () => commands.goto_page(Math.max(0, doc().active - 1)),
-  select_page: ({ index }) => commands.goto_page(index),
+  next_page: () => gotoPage(Math.min(doc().active + 1, doc().pages.length - 1)),
+  previous_page: () => gotoPage(Math.max(0, doc().active - 1)),
+  select_page: ({ index }: any) => gotoPage(index),
 
   undo: () => {
     if (session.history.undo.length) {
       session.history.redo.push(doc());
-      session.history.present = session.history.undo.pop();
+      session.history.present = session.history.undo.pop()!;
     }
     return snapshot();
   },
@@ -221,16 +283,17 @@ const commands = {
   redo: () => {
     if (session.history.redo.length) {
       session.history.undo.push(doc());
-      session.history.present = session.history.redo.pop();
+      session.history.present = session.history.redo.pop()!;
     }
     return snapshot();
   },
 
   board_press: ({ x, y }) => {
     const tool = session.tool;
-    const needsCheckpoint = tool === 'Select' || tool.Pen || tool === 'SmartShape' ||
+    const isPen = typeof tool === 'object' && 'Pen' in tool;
+    const needsCheckpoint = tool === 'Select' || isPen || tool === 'SmartShape' ||
       tool === 'Text' || tool === 'Fill' ||
-      (tool.Eraser === 'Point');
+      (typeof tool === 'object' && 'Eraser' in tool && tool.Eraser === 'PointEraser');
     if (needsCheckpoint) checkpoint();
     if (tool === 'Text') {
       mutPage().elements.push({
@@ -242,18 +305,18 @@ const commands = {
       });
       session.selected = mutPage().elements.length - 1;
       session.dirty = true;
-    } else if (tool.Eraser === 'Point') {
-      commands._erase_at(x, y);
+    } else if (typeof tool === 'object' && 'Eraser' in tool && tool.Eraser === 'PointEraser') {
+      eraseAt(x, y);
     } else if (tool === 'Fill') {
-      commands._fill_at(x, y);
+      fillAt(x, y);
     }
     return snapshot();
   },
 
-  _erase_at: (x, y) => {
+  _erase_at: ({ x, y }: any) => {
     const page = mutPage();
     page.elements = page.elements.filter((el) => {
-      if (!el.Stroke) return true;
+      if (!('Stroke' in el) || !el.Stroke) return true;
       const s = el.Stroke;
       const w = Math.max(s.width, 8.0);
       for (let i = 0; i + 1 < s.points.length; i++) {
@@ -266,24 +329,17 @@ const commands = {
         if (Math.hypot(x - (a.x + t * abx), y - (a.y + t * aby)) <= w / 2 + 8.0) return false;
       }
       return true;
-    });
+    }) as Element[];
   },
 
-  _fill_at: (x, y) => {
-    const hits = hitElements(activePage(), x, y);
-    const target = hits[0];
-    if (target === undefined) return;
-    const page = mutPage();
-    const el = page.elements[target];
-    if (el.Figure) el.Figure.fill = { Solid: session.settings.figure_fill };
-  },
+  _fill_at: ({ x, y }: any) => fillAt(x, y),
 
   commit_stroke: ({ points, style }) => {
     const stroke = {
       style,
       color: session.settings.pen_color,
       width: style === 'Highlighter' ? session.settings.pen_width * 4 : session.settings.pen_width,
-      points: [],
+      points: [] as Array<{ x: number; y: number }>,
     };
     for (const p of points) {
       const last = stroke.points[stroke.points.length - 1];
@@ -291,8 +347,9 @@ const commands = {
       stroke.points.push({ x: p.x, y: p.y });
     }
     if (stroke.points.length >= 2) {
-      let element = { Stroke: stroke };
-      if (session.tool === 'SmartShape') {
+      let element: Element = { Stroke: stroke };
+      const isMagic = typeof session.tool === 'object' && 'Pen' in session.tool && session.tool.Pen === 'MagicPen';
+      if (session.tool === 'SmartShape' || isMagic) {
         const shape = recognizeShape(stroke.points, session.settings);
         if (shape) element = { Figure: shape };
       }
@@ -304,7 +361,7 @@ const commands = {
   commit_figure: ({ kind, start, current }) => {
     if (Math.hypot(current.x - start.x, current.y - start.y) <= 3.0) return snapshot();
     checkpoint();
-    const closed = !['Line', 'Arrow', 'DottedLine', 'WavyLine'].includes(kind);
+    const closed = figureIsClosed(kind);
     mutPage().elements.push({
       Figure: {
         kind,
@@ -325,7 +382,7 @@ const commands = {
     page.elements = page.elements.filter((el) => {
       const b = elementBounds(el);
       return b ? !rectIntersects(b, region) : true;
-    });
+    }) as Element[];
     return snapshot();
   },
 
@@ -336,13 +393,13 @@ const commands = {
     for (const i of indices) {
       const el = page.elements[i];
       if (!el) continue;
-      if (el.Stroke) {
+      if ('Stroke' in el && el.Stroke) {
         for (const p of el.Stroke.points) { p.x += dx; p.y += dy; }
-      } else if (el.Figure) {
+      } else if ('Figure' in el && el.Figure) {
         el.Figure.rect.x += dx; el.Figure.rect.y += dy;
-      } else if (el.Text) {
+      } else if ('Text' in el && el.Text) {
         el.Text.top_left.x += dx; el.Text.top_left.y += dy;
-      } else if (el.Media) {
+      } else if ('Media' in el && el.Media) {
         el.Media.rect.x += dx; el.Media.rect.y += dy;
       }
     }
@@ -377,14 +434,14 @@ const commands = {
       const page = mutPage();
       const el = page.elements[session.selected];
       if (el) {
-        const dup = structuredClone(el);
-        if (dup.Stroke) {
+        const dup = structuredClone(el) as Element;
+        if ('Stroke' in dup && dup.Stroke) {
           for (const p of dup.Stroke.points) { p.x += 24; p.y += 24; }
-        } else if (dup.Figure) {
+        } else if ('Figure' in dup && dup.Figure) {
           dup.Figure.rect.x += 24; dup.Figure.rect.y += 24;
-        } else if (dup.Text) {
+        } else if ('Text' in dup && dup.Text) {
           dup.Text.top_left.x += 24; dup.Text.top_left.y += 24;
-        } else if (dup.Media) {
+        } else if ('Media' in dup && dup.Media) {
           dup.Media.rect.x += 24; dup.Media.rect.y += 24;
         }
         page.elements.push(dup);
@@ -397,7 +454,7 @@ const commands = {
     if (session.selected != null) {
       const page = mutPage();
       const el = page.elements[session.selected];
-      if (el && el.Text) el.Text.content = content;
+      if (el && 'Text' in el && el.Text) el.Text.content = content;
     }
   },
 
@@ -459,7 +516,7 @@ const commands = {
     return commands._save_to(session.filePath);
   },
 
-  _save_to: (path) => {
+  _save_to: (path: string) => {
     const store = loadStore();
     store.docs = store.docs || {};
     store.docs[path] = doc();
@@ -526,6 +583,13 @@ const commands = {
 
   autosave_tick: () => snapshot(),
 
+  clear_page: () => {
+    checkpoint();
+    activePage().elements = [];
+    session.dirty = true;
+    return snapshot();
+  },
+
   check_updates: () => {
     session.update.checking = true;
     session.update.available = null;
@@ -583,7 +647,7 @@ const commands = {
 })();
 
 /** Dispatch a mock command by name. */
-export function mockInvoke(cmd, args = {}) {
+export function mockInvoke(cmd: string, args: Record<string, unknown> = {}): Promise<any> {
   const handler = commands[cmd];
   if (!handler) return Promise.reject(new Error(`mock: unknown command ${cmd}`));
   return Promise.resolve(handler(args));

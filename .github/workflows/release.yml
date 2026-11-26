@@ -29,6 +29,12 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: node scripts/sync_version.js
+      - name: Bundle front end (Svelte 5 + Vite)
+        run: npm ci
+        working-directory: ui
+      - name: Build front end
+        run: npm run build
+        working-directory: ui
       - name: Build NSIS installer
         run: npx -y @tauri-apps/cli@^2 build --config crates/notation-tauri/tauri.conf.json --bundles nsis
       - name: Stage artifacts

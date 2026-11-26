@@ -29,6 +29,14 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Bundle front end (clippy compiles the Tauri shell, which embeds ui/dist)
+        run: npm ci && mkdir -p dist && npm run build
+        working-directory: ui
       - name: Install Tauri build dependencies (Linux)
         run: |
           sudo apt-get update
@@ -47,6 +55,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Build front end (Svelte 5 + Vite)
+        run: npm ci
+        working-directory: ui
+      - name: Bundle front end
+        run: npm run build
+        working-directory: ui
       - name: Install Tauri build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -55,6 +74,21 @@ jobs:
             libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
       - run: cargo test --workspace --all-targets
       - run: cargo test --workspace --doc
+
+  frontend:
+    name: Front end (svelte-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+        working-directory: ui
+      - run: npm run check
+        working-directory: ui
 
   build:
     name: Release build (${{ matrix.os }})
@@ -67,6 +101,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Bundle front end (Svelte 5 + Vite)
+        run: npm ci && npm run build
+        working-directory: ui
       - name: Install Tauri build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |

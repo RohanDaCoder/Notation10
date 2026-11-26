@@ -67,6 +67,43 @@ pub(crate) async fn cycle_figure(state: State<'_, AppState>) -> CmdResult {
     Ok(snapshot_of(&state))
 }
 
+#[tauri::command]
+pub(crate) async fn set_figure_colors(
+    state: State<'_, AppState>,
+    line: Option<Palette>,
+    fill: Option<Palette>,
+    width: Option<f32>,
+) -> CmdResult {
+    with_state(&state, |app| app.set_figure_colors(line, fill, width));
+    Ok(snapshot_of(&state))
+}
+
+#[tauri::command]
+pub(crate) async fn set_text_style(
+    state: State<'_, AppState>,
+    size: Option<f32>,
+    bold: Option<bool>,
+    italic: Option<bool>,
+) -> CmdResult {
+    with_state(&state, |app| app.set_text_style(size, bold, italic));
+    Ok(snapshot_of(&state))
+}
+
+#[tauri::command]
+pub(crate) async fn set_page_background(
+    state: State<'_, AppState>,
+    background: notation_core::Background,
+) -> CmdResult {
+    with_state(&state, |app| app.set_page_background(background));
+    Ok(snapshot_of(&state))
+}
+
+#[tauri::command]
+pub(crate) async fn clear_page(state: State<'_, AppState>) -> CmdResult {
+    with_state(&state, |app| app.clear_page());
+    Ok(snapshot_of(&state))
+}
+
 // -- pages ----------------------------------------------------------------
 
 #[tauri::command]

@@ -20,6 +20,9 @@ pub enum Tool {
     Eraser(EraserMode),
     /// "Fill".
     Fill,
+    /// "Slide roam" — pan/zoom the slide viewport (handled client-side;
+    /// the session tracks it so snapshots reflect the active tool).
+    Roam,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,6 +47,7 @@ impl Tool {
             Tool::Eraser(EraserMode::Point) => "Eraser",
             Tool::Eraser(EraserMode::Select) => "Select \"Erase\"",
             Tool::Fill => "Fill",
+            Tool::Roam => "Roam",
         }
     }
 

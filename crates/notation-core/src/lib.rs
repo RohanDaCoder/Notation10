@@ -14,7 +14,7 @@ pub mod tool;
 pub use element::Element;
 pub use geometry::{Point, Rect};
 pub use history::History;
-pub use model::{Document, Page, PageRatio};
+pub use model::{Background, Document, Page, PageRatio};
 pub use smart::recognize;
 pub use stroke::{Palette, Stroke, StrokeStyle};
 pub use tool::Tool;

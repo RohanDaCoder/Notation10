@@ -27,10 +27,24 @@ impl PageRatio {
 }
 
 /// Background of a page, mirroring the original's background options.
+/// Unit variants serialize as plain strings so the web front end can pass
+/// them straight through (`"Plain"`, `"Lined"`, `"Mizige"`, …).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Background {
     /// Plain solid color board.
     Plain,
+    /// Ruled writing paper.
+    Lined,
+    /// Four-line English writing guide.
+    FourLine,
+    /// 田字格 (Chinese character practice grid).
+    Mizige,
+    /// Pinyin practice grid (four-line over 田字格).
+    PinyinMizige,
+    /// Horizontal writing lines (横线).
+    Hengxian,
+    /// Math practice grid.
+    MathGrid,
     /// Solid color with discipline-specific accent (math grid, staff lines…).
     Subject(SubjectScene),
 }
