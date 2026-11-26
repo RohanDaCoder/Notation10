@@ -9,15 +9,19 @@
 //!    the release's `SHA256SUMS.txt`.
 //! 3. The GUI layer installs the artifact (replace + relaunch).
 
+use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 /// Repository whose releases drive updates.
 pub const DEFAULT_REPO: &str = "RohanDaCoder/Notation10";
+
+/// Release asset carrying the update manifest (v0.2.0+ release format).
+pub const MANIFEST_ASSET: &str = "latest.json";
 
 /// How much of a release JSON body we are willing to read.
 const MAX_JSON: usize = 1024 * 1024;
@@ -222,6 +226,140 @@ pub fn sha256_of_file(path: &Path) -> Result<String, UpdateError> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+// ---------------------------------------------------------------------------
+// Update manifest (`latest.json`, the v0.2.0+ tag-based release protocol)
+// ---------------------------------------------------------------------------
+
+/// The per-platform artifact entry of an update manifest.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlatformAsset {
+    /// Browser-downloadable artifact URL.
+    pub url: String,
+    /// Expected SHA-256 hex digest of the artifact.
+    pub sha256: String,
+    /// Optional artifact size in bytes.
+    #[serde(default)]
+    pub size: Option<u64>,
+}
+
+/// The update manifest attached to every release as `latest.json`.
+///
+/// ```json
+/// {
+///   "version": "v0.2.0",
+///   "notes": "Notation10 v0.2.0",
+///   "pub_date": "2026-11-26T12:00:00Z",
+///   "platforms": {
+///     "windows-x86_64": { "url": "...", "sha256": "...", "size": 123 }
+///   }
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UpdateManifest {
+    pub version: String,
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub pub_date: Option<String>,
+    pub platforms: BTreeMap<String, PlatformAsset>,
+}
+
+impl UpdateManifest {
+    /// The artifact for a platform key like `windows-x86_64`.
+    pub fn platform(&self, key: &str) -> Option<&PlatformAsset> {
+        self.platforms.get(key)
+    }
+}
+
+/// A pending update resolved from a manifest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ManifestUpdate {
+    pub version: String,
+    pub notes: String,
+    pub asset: PlatformAsset,
+}
+
+/// Platform key for the running build (e.g. `windows-x86_64`).
+pub fn platform_key() -> String {
+    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
+}
+
+/// Fetch `releases/latest`'s `latest.json` and compare it with `current`.
+///
+/// Returns `Ok(None)` when we are up to date.
+pub fn check_manifest(
+    repo: &str,
+    current_version: &str,
+    platform: &str,
+) -> Result<Option<ManifestUpdate>, UpdateError> {
+    let url = format!("https://api.github.com/repos/{repo}/releases/latest");
+    let mut body = String::new();
+    http_get(&url)?
+        .into_reader()
+        .take(MAX_JSON as u64)
+        .read_to_string(&mut body)?;
+    let release: Release = serde_json::from_str(&body)?;
+
+    if !is_newer(&release.tag_name, current_version) {
+        return Ok(None);
+    }
+
+    let manifest_asset = release
+        .assets
+        .iter()
+        .find(|a| a.name == MANIFEST_ASSET)
+        .ok_or(UpdateError::NoAsset)?;
+
+    let mut manifest_body = String::new();
+    http_get(&manifest_asset.url)?
+        .into_reader()
+        .take(MAX_JSON as u64)
+        .read_to_string(&mut manifest_body)?;
+    let manifest: UpdateManifest = serde_json::from_str(&manifest_body)?;
+
+    let asset = manifest
+        .platform(platform)
+        .cloned()
+        .ok_or(UpdateError::NoAsset)?;
+
+    Ok(Some(ManifestUpdate {
+        version: manifest.version,
+        notes: manifest.notes.unwrap_or_else(|| release.tag_name.clone()),
+        asset,
+    }))
+}
+
+/// Download a manifest asset, verify its SHA-256, return the staged path.
+///
+/// `on_progress` is invoked once with `(bytes, expected)` after the body has
+/// been read (the artifact is small enough to buffer).
+pub fn download_manifest_asset(
+    asset: &PlatformAsset,
+    on_progress: impl Fn(u64, Option<u64>),
+) -> Result<PathBuf, UpdateError> {
+    let dir = stage_dir()?;
+    let file_name = asset
+        .url
+        .rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("notation10-update.exe");
+    let path = dir.join(file_name);
+
+    let mut reader = http_get(&asset.url)?.into_reader();
+    let mut bytes = Vec::new();
+    reader.read_to_end(&mut bytes)?;
+    on_progress(bytes.len() as u64, asset.size);
+
+    let digest = hex::encode(Sha256::digest(&bytes));
+    if !digest.eq_ignore_ascii_case(asset.sha256.trim()) {
+        return Err(UpdateError::ChecksumMismatch(file_name.to_string()));
+    }
+
+    std::fs::write(&path, &bytes)?;
+    Ok(path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,5 +420,64 @@ mod tests {
         let sums = vec![("a.zip".to_string(), "deadbeef".to_string())];
         assert_eq!(expected_digest(&sums, "a.zip"), Some("deadbeef"));
         assert_eq!(expected_digest(&sums, "b.zip"), None);
+    }
+
+    #[test]
+    fn manifest_parses_and_selects_platform() {
+        let json = r#"{
+            "version": "v0.2.0",
+            "notes": "Tauri migration",
+            "pub_date": "2026-11-26T12:00:00Z",
+            "platforms": {
+                "windows-x86_64": {
+                    "url": "https://example.com/Notation10_0.2.0_x64-setup.exe",
+                    "sha256": "abc123",
+                    "size": 5242880
+                }
+            }
+        }"#;
+        let manifest: UpdateManifest = serde_json::from_str(json).unwrap();
+        assert_eq!(manifest.version, "v0.2.0");
+        let asset = manifest.platform("windows-x86_64").expect("windows asset");
+        assert_eq!(asset.sha256, "abc123");
+        assert_eq!(asset.size, Some(5_242_880));
+        assert!(manifest.platform("linux-x86_64").is_none());
+    }
+
+    #[test]
+    fn manifest_defaults_optional_fields() {
+        let json = r#"{"version": "v0.2.1", "platforms": {}}"#;
+        let manifest: UpdateManifest = serde_json::from_str(json).unwrap();
+        assert_eq!(manifest.notes, None);
+        assert_eq!(manifest.pub_date, None);
+        assert!(manifest.platforms.is_empty());
+    }
+
+    #[test]
+    fn platform_key_is_os_arch() {
+        let key = platform_key();
+        assert!(key.contains(std::env::consts::OS));
+        assert!(key.contains(std::env::consts::ARCH));
+        assert_eq!(key.matches('-').count(), 1);
+    }
+
+    #[test]
+    fn manifest_roundtrip() {
+        let manifest = UpdateManifest {
+            version: "v0.3.0".into(),
+            notes: Some("next".into()),
+            pub_date: None,
+            platforms: BTreeMap::from([(
+                "windows-x86_64".to_string(),
+                PlatformAsset {
+                    url: "https://example.com/a.exe".into(),
+                    sha256: "deadbeef".into(),
+                    size: None,
+                },
+            )]),
+        };
+        let json = serde_json::to_string(&manifest).unwrap();
+        let back: UpdateManifest = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, manifest);
     }
 }
